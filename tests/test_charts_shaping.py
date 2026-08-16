@@ -1,8 +1,40 @@
-import sys, pathlib, pytest
+import sys, subprocess, pathlib, pytest
 base = pathlib.Path(__file__).parent.parent / "plugins/financial-skills"
+# Deliberately do NOT add assets/ to the path: charts.py must locate palette.py
+# itself, so a caller under any harness only needs to know where charts.py is.
 sys.path.insert(0, str(base / "scripts"))
-sys.path.insert(0, str(base / "assets"))
 import charts as c
+
+
+def test_charts_locates_palette_without_caller_configuring_the_path():
+    """A caller that knows only scripts/ must still get a working module."""
+    r = subprocess.run(
+        [sys.executable, "-c",
+         f"import sys; sys.path.insert(0, {str(base / 'scripts')!r}); "
+         "import charts; print(charts.p.POSITIVE['light'])"],
+        capture_output=True, text=True,
+    )
+    assert r.returncode == 0, r.stderr
+    assert r.stdout.strip() == "#2a78d6"
+
+
+def test_financial_home_defaults_outside_any_harness_config_dir(monkeypatch):
+    monkeypatch.delenv("FINANCIAL_HOME", raising=False)
+    home = c.financial_home()
+    assert home.name == ".financial"
+    assert ".claude" not in str(home)
+
+
+def test_financial_home_honours_the_env_var(monkeypatch, tmp_path):
+    monkeypatch.setenv("FINANCIAL_HOME", str(tmp_path / "elsewhere"))
+    assert c.financial_home() == tmp_path / "elsewhere"
+
+
+def test_chart_dir_is_dated_under_the_financial_home(monkeypatch, tmp_path):
+    monkeypatch.setenv("FINANCIAL_HOME", str(tmp_path))
+    d = c.chart_dir()
+    assert d.parent == tmp_path / "charts"
+    assert len(d.name) == 10 and d.name.count("-") == 2  # YYYY-MM-DD
 
 
 def test_fold_tail_keeps_top_n_and_sums_rest():

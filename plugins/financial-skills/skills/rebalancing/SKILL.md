@@ -12,9 +12,9 @@ trades that do the job.
 
 - Current allocation — the same read capabilities `portfolio-review` uses,
   resolved via `references/mcp-tools.md`.
-- `~/.claude/financial/investment-policy.md` — targets, **tolerance bands**,
+- `$FINANCIAL_HOME/investment-policy.md` — targets, **tolerance bands**,
   do-not-sell list, cash floor, maximum single position, tax constraints.
-- `~/.claude/financial/trade-log.md` — recent activity, for wash-sale checks.
+- `$FINANCIAL_HOME/trade-log.md` — recent activity, for wash-sale checks.
 
 Without a policy file this skill cannot run. Offer to create one from
 `assets/investment-policy.template.md` rather than assuming targets.
@@ -74,3 +74,11 @@ Via `financial-charts`:
 
 - `drift_chart` — drift vs target, before
 - `allocation_chart` — current and projected post-trade allocation
+
+## If the broker connection is unavailable
+
+This skill needs the `robinhood-trading` MCP server. If it is not reachable —
+not configured, not authorized, or the harness has no MCP support — say so
+plainly, point at `references/harness-setup.md`, and stop. Do not guess at
+holdings, prices, or balances, and do not substitute figures the human
+mentioned in passing for data you were unable to read.

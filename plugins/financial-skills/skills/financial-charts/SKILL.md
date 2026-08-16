@@ -26,16 +26,28 @@ Import the shipped module, `scripts/charts.py`. Do not write chart code inline �
 the module encodes rules that are easy to get wrong and that fail *silently*
 when wrong.
 
+**Resolving the path**, in order — this skill works under any agent harness, so
+never hardcode an install location:
+
+1. `$FINANCIAL_SKILLS_ROOT`, if set
+2. two levels up from this skill's own directory (`skills/financial-charts/` →
+   plugin root), which your harness tells you when it loads this skill
+3. `$FINANCIAL_HOME/env.sh`, written by `financial-setup`
+
+`charts.py` is **self-locating** — it finds `assets/palette.py` from its own
+path, so you only need the one path above.
+
 ```python
 import sys
-sys.path[:0] = ["<plugin>/scripts", "<plugin>/assets"]
+sys.path.insert(0, f"{ROOT}/scripts")   # ROOT resolved as above
 import charts as c
 
-c.allocation_chart(items, out_dir, mode="light")
+c.allocation_chart(items, c.chart_dir(), mode="light")
 ```
 
 Every renderer takes `out_dir` and `mode` (`"light"` or `"dark"`), writes
-`<name>.html` and `<name>.png`, and returns the HTML path.
+`<name>.html` and `<name>.png`, and returns the HTML path. `c.chart_dir()`
+returns today's dated output directory under `$FINANCIAL_HOME`.
 
 ## Choosing the form — by the data's job, not by convention
 
@@ -79,7 +91,7 @@ the better read for holding-period decisions anyway.
 
 ## Output
 
-Write to `~/.claude/financial/charts/<YYYY-MM-DD>/`. Both HTML (interactive —
+Write to `$FINANCIAL_HOME/charts/<YYYY-MM-DD>/`. Both HTML (interactive —
 `xy` gives tooltips, crosshairs, pan and zoom for free) and PNG.
 
 ## Mandatory final step

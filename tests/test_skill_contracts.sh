@@ -60,5 +60,16 @@ if [ -f "$f" ]; then
   has "$f" "not financial advice"
 fi
 
+f=$S/financial-setup/SKILL.md
+[ -f "$f" ] || { echo "FAIL: no $f" >&2; fail=1; }
+if [ -f "$f" ]; then
+  has "$f" "scripts/doctor.sh"
+  has "$f" "references/harness-setup.md"
+  has "$f" "--fix"
+  has "$f" "FINANCIAL_HOME"
+  has "$f" "never overwrite"
+  has "$f" "authorization state cannot be checked"
+fi
+
 [ "$fail" -eq 0 ] && echo "SKILL CONTRACTS PASS" || echo "SKILL CONTRACTS FAILED" >&2
 exit "$fail"

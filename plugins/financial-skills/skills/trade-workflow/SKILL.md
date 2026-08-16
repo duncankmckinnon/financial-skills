@@ -69,7 +69,7 @@ Only after an explicit yes to step 4. One order.
 
 ### 6. Log
 
-Append to `~/.claude/financial/trade-log.md`:
+Append to `$FINANCIAL_HOME/trade-log.md`:
 
 - timestamp
 - symbol, side, quantity, order type, limit price
@@ -85,3 +85,11 @@ the record of what was actually done and why.
 If the place call fails or returns an unexpected status, **report it exactly** —
 including partial fills — and log it. Do not retry silently. A trade whose state
 is unclear is a thing the human needs to know about immediately.
+
+## If the broker connection is unavailable
+
+This skill needs the `robinhood-trading` MCP server. If it is not reachable —
+not configured, not authorized, or the harness has no MCP support — say so
+plainly, point at `references/harness-setup.md`, and stop. Do not guess at
+holdings, prices, or balances, and do not substitute figures the human
+mentioned in passing for data you were unable to read.

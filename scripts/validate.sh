@@ -41,5 +41,17 @@ for f in plugins/*/skills/*/SKILL.md; do
   fi
 done
 
+echo "== 7. skills are harness-agnostic =="
+# Skills must work under any agent, not just Claude Code. Harness-specific
+# instructions belong in references/harness-setup.md, not in a SKILL.md.
+for f in plugins/*/skills/*/SKILL.md; do
+  [ -e "$f" ] || continue
+  if grep -nE '~/\.claude/|CLAUDE_PLUGIN_ROOT|(^|[^a-zA-Z])/mcp([^a-zA-Z]|$)|claude plugin ' "$f"; then
+    err "$f contains a Claude-Code-specific path or command; move it to references/harness-setup.md"
+  else
+    ok "$(basename "$(dirname "$f")") is harness-agnostic"
+  fi
+done
+
 [ "$fail" -eq 0 ] && echo "ALL CHECKS PASS" || echo "VALIDATION FAILED" >&2
 exit "$fail"

@@ -12,13 +12,40 @@ Rendering rules this module enforces so callers cannot get them wrong:
 See references/chart-recipes.md for the verified xy 0.0.6 call for each form,
 including the orientation="horizontal" axis-role trap.
 """
+import os
 import pathlib
+import sys
 
 import xy
 
-import palette as p
+# Self-locating: find assets/palette.py relative to this file rather than
+# making every caller configure sys.path. Keeps the module usable from any
+# agent harness, which only needs to know where this script lives.
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "assets"))
+
+import palette as p  # noqa: E402  (import follows the path fix above)
 
 MINUS = "−"  # U+2212, not a hyphen
+
+
+def financial_home():
+    """Where personal financial data lives.
+
+    Defaults to ~/.financial, deliberately not inside any agent harness's
+    config directory -- this is the user's data, not the tool's. Override
+    with FINANCIAL_HOME.
+    """
+    env = os.environ.get("FINANCIAL_HOME")
+    if env:
+        return pathlib.Path(env).expanduser()
+    return pathlib.Path.home() / ".financial"
+
+
+def chart_dir(date=None):
+    """Dated chart output directory under the financial home."""
+    import datetime
+    day = date or datetime.date.today().isoformat()
+    return financial_home() / "charts" / day
 
 
 def fold_tail(items, keep=7):

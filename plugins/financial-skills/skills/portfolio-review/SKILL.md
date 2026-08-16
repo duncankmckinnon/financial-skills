@@ -23,7 +23,7 @@ and order history. **Resolve these to actual tool names via
 Note the server's boundary: all accounts are readable; only the dedicated
 Agentic account is writable. Reviewing every account is expected and safe.
 
-Read the policy file at `~/.claude/financial/investment-policy.md` if it exists.
+Read the policy file at `$FINANCIAL_HOME/investment-policy.md` if it exists.
 
 ## Analyses
 
@@ -69,3 +69,11 @@ Hand off to `financial-charts` — do not write chart code here:
 Lead with the two or three things that actually matter — a breached position
 limit, a large drift, a concentrated exposure — then the supporting detail.
 State assumptions. This is decision support, not advice.
+
+## If the broker connection is unavailable
+
+This skill needs the `robinhood-trading` MCP server. If it is not reachable —
+not configured, not authorized, or the harness has no MCP support — say so
+plainly, point at `references/harness-setup.md`, and stop. Do not guess at
+holdings, prices, or balances, and do not substitute figures the human
+mentioned in passing for data you were unable to read.

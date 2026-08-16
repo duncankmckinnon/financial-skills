@@ -16,40 +16,48 @@ another's job.
 | `rebalancing` | Drift table, minimal trade set, tax and wash-sale checks; hands trades to `trade-workflow` one at a time. | yes |
 | `retirement-planning` | Projections, savings rate vs goal, account location, glidepath. | no |
 | `financial-charts` | All chart rendering, via the `xy` library. | no |
+| `financial-setup` | Sets up and verifies the environment. Start here. | no |
 
 ## Setup
 
-**1. Authorize the MCP server** (one time, interactive):
-
-```
-/mcp
-```
-
-Authorize `robinhood-trading`. The plugin ships the server config in `.mcp.json`;
-it carries a URL only — no credentials live in this repo.
-
-**2. Create your investment policy** (optional but unlocks drift and rebalancing):
+Ask your agent to **set up financial skills**, or run the doctor directly:
 
 ```bash
-mkdir -p ~/.claude/financial
-cp assets/investment-policy.template.md ~/.claude/financial/investment-policy.md
+scripts/doctor.sh          # check and report
+scripts/doctor.sh --fix    # create the data home, policy file and env.sh
 ```
 
-Then edit it with your targets, tolerance bands, risk limits, and do-not-sell
-list. Skills degrade gracefully without it — they report what is computable and
-name what needs a policy, rather than inventing targets.
+It checks resources, `uv`, an end-to-end smoke chart, your data home, the policy
+file, and the broker declaration. `--fix` is additive and **never overwrites an
+existing investment policy**.
 
-**3. Charts** need `uv`, which fetches `xy` on demand. No venv to manage.
+Connecting the broker is harness-specific — see
+[`references/harness-setup.md`](references/harness-setup.md).
+
+## Works with any agent
+
+The skills are harness-agnostic: they resolve resource paths at runtime, keep
+data outside any tool's config directory, and refer to broker capabilities
+rather than hardcoded tool names. `scripts/validate.sh` check 7 fails the build
+if a `SKILL.md` picks up a harness-specific path or command.
+
+Point any agent that can load a `SKILL.md` at `skills/`, set
+`FINANCIAL_SKILLS_ROOT` to this directory, and register an MCP server named
+`robinhood-trading`. Agents without MCP support can still use
+`retirement-planning` and `financial-charts`.
 
 ## Where your data lives
 
-Nothing personal enters this repository:
+`${FINANCIAL_HOME:-~/.financial}` — deliberately outside any agent's config
+directory, because this is your data, not a tool's state. Nothing personal
+enters this repository.
 
 | File | Purpose |
 |---|---|
-| `~/.claude/financial/investment-policy.md` | Your targets and limits |
-| `~/.claude/financial/trade-log.md` | Append-only record of placed orders |
-| `~/.claude/financial/charts/<date>/` | Rendered charts |
+| `$FINANCIAL_HOME/investment-policy.md` | Your targets and limits |
+| `$FINANCIAL_HOME/trade-log.md` | Append-only record of placed orders |
+| `$FINANCIAL_HOME/charts/<date>/` | Rendered charts |
+| `$FINANCIAL_HOME/env.sh` | Resolved paths, written by the doctor |
 
 ## Safety model
 
