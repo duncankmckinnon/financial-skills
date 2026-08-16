@@ -40,20 +40,34 @@ is far worse.
 but has not been confirmed against the live server. `Verified: no` means the
 capability is documented to exist but its tool name is unknown.
 
+`Verified: live` means the name was observed against the authorized server.
+`docs` means it appears in Robinhood's published documentation but has not been
+confirmed live. `no` means the capability is documented to exist but its tool
+name is still unknown.
+
 | Capability | Tool name | Verified |
 |---|---|---|
+| List accounts | `get_accounts` | live |
+| Portfolio value and balances | `get_portfolio` | live |
+| Equity positions across accounts | `get_equity_positions` | live |
+| Live equity quotes | `get_equity_quotes` | live |
 | Preview an equity order, returning warnings and estimated cost | `review_equity_order` | docs |
 | Place an equity order (Agentic account only) | `place_equity_order` | docs |
-| List positions across accounts | unknown | no |
-| Account balances, buying power, portfolio value | unknown | no |
 | Order history | unknown | no |
 | Transaction history | unknown | no |
-| Live equity quote | unknown | no |
 | Symbol search | unknown | no |
 | Tradability check | unknown | no |
 | Popular / trending lists | unknown | no |
-| Watchlist read | unknown | no |
-| Watchlist write | unknown | no |
+| Watchlist read / write | unknown | no |
+
+**This list is partial.** The four `live` names were observed during a real
+portfolio review on 2026-08-15; the server exposes more than these. The `docs`
+rows are the two order tools, and they are the ones it matters most to confirm
+before `trade-workflow` is used against a funded Agentic account — a wrong name
+fails loudly, which is correct, but it should be confirmed rather than assumed.
+
+To finish: authorize the server, enumerate the full tool list with input
+schemas, replace the `no` rows, and promote the `docs` rows to `live`.
 
 ## Usage rules for skills
 

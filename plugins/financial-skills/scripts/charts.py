@@ -136,17 +136,41 @@ def _padded_domain(values, pad=0.28):
     return (lo - span * pad, hi + span * pad)
 
 
-def _allocation_labels(folded, mode, total=None):
-    """Direct label per segment, at the segment midpoint on the value axis."""
+# A segment narrower than its own label text has nowhere to put it. Labelling
+# it anyway produces overlapping text and a final label that runs off the plot
+# -- observed on a real 145-position portfolio where the largest holding was
+# 4.7%. Segments below this share are carried by the legend instead.
+MIN_LABEL_SHARE = 0.06
+
+
+def _allocation_labels(folded, mode, total=None, min_share=MIN_LABEL_SHARE):
+    """Direct label per segment wide enough to hold one, at its midpoint.
+
+    Segments below `min_share` of the total are left to the legend rather
+    than labelled into a collision.
+    """
     if total is None:
         total = sum(v for _, v in folded) or 1.0
     out, run = [], 0.0
     for label, value in folded:
-        out.append(xy.label(run + value / 2, 0.0,
-                            f"{label} {value / total * 100:.1f}%",
-                            color=p.INK[mode]["secondary"]))
+        if value / total >= min_share:
+            out.append(xy.label(run + value / 2, 0.0,
+                                f"{label} {value / total * 100:.1f}%",
+                                color=p.INK[mode]["secondary"], anchor="middle"))
         run += value
     return out
+
+
+def unlabelled_share(items, keep=7, min_share=MIN_LABEL_SHARE):
+    """Fraction of the chart that will carry no direct label.
+
+    Callers should present a table alongside when this is non-trivial: the
+    relief rule wants identity carried by something other than hue, and for a
+    flat portfolio the chart alone cannot do it.
+    """
+    folded = fold_tail(items, keep=keep)
+    total = sum(v for _, v in folded) or 1.0
+    return sum(v for _, v in folded if v / total < min_share) / total
 
 
 def _diverging_bar_labels(pairs, mode, unit):
@@ -162,8 +186,11 @@ def allocation_chart(items, out_dir, mode="light", title="Allocation"):
     folded = fold_tail(items, keep=7)
     colors = series_colors(len(folded), mode)
     total = sum(v for _, v in folded) or 1.0
+    # Plot percentages, not raw values: the axis is labelled "% of portfolio",
+    # and an axis whose label and units disagree misstates the chart.
+    pct = [(label, value / total * 100.0) for label, value in folded]
     marks, base = [], 0.0
-    for (label, value), color in zip(folded, colors):
+    for (label, value), color in zip(pct, colors):
         marks.append(xy.bar(
             x=[0.0], y=[value], base=base, color=color, name=label,
             orientation="horizontal", width=0.5,
@@ -171,9 +198,16 @@ def allocation_chart(items, out_dir, mode="light", title="Allocation"):
         ))
         base += value
     return _write(xy.bar_chart(
-        *marks, *_allocation_labels(folded, mode, total), xy.legend(),
-        xy.y_axis(tick_values=[0.0], tick_labels=[title]),
-        xy.x_axis(label="% of portfolio"),
+        *marks, *_allocation_labels(pct, mode, 100.0),
+        # Legend below the plot: inside the frame it covers the thin
+        # right-hand segments, which are exactly the ones it has to explain.
+        # xy has no out-of-frame legend placement, so make room instead: the
+        # category axis is padded upward and the legend sits in the empty band
+        # above the bar. Inside the frame it would cover the thin right-hand
+        # segments, which are exactly the ones it has to explain.
+        xy.legend(loc="upper center", ncols=4),
+        xy.y_axis(tick_values=[0.0], tick_labels=[title], domain=(-0.4, 1.5)),
+        xy.x_axis(label="% of portfolio", domain=(0.0, 100.0)),
         _theme(mode),
     ), out_dir, "allocation")
 

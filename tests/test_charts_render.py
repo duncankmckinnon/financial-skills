@@ -44,6 +44,35 @@ def test_allocation_labels_sit_on_the_value_axis_at_segment_midpoints():
     assert all(a.y == 0.0 for a in labels)               # single category row
 
 
+# A segment narrower than its own label has nowhere to put the text: the
+# labels collide into an unreadable smear and the last one runs off the plot.
+# Real portfolios hit this constantly -- one dominant class beside a thin tail.
+
+def test_allocation_omits_labels_for_segments_too_thin_to_hold_them():
+    folded = [("US equity", 80.0), ("Intl", 12.0), ("Bonds", 4.0),
+              ("Real assets", 3.0), ("Cash", 1.0)]
+    labels = c._allocation_labels(folded, "light")
+    labelled = [a.text for a in labels]
+    assert any("US equity" in t for t in labelled)
+    assert any("Intl" in t for t in labelled)
+    assert not any("Cash" in t for t in labelled)        # 1% cannot hold a label
+    assert not any("Real assets" in t for t in labelled)  # 3% cannot either
+
+
+def test_allocation_labels_never_exceed_the_plotted_domain():
+    folded = [("A", 50.0), ("B", 50.0)]
+    labels = c._allocation_labels(folded, "light")
+    total = 100.0
+    assert all(0.0 <= a.x <= total for a in labels)
+
+
+def test_allocation_chart_survives_a_flat_many_position_portfolio(tmp_path):
+    """145 near-equal positions: the shape that produced the smear."""
+    flat = [(f"S{i}", 100.0 - i * 0.1) for i in range(145)]
+    out = c.allocation_chart(flat, tmp_path)
+    assert out.exists() and out.with_suffix(".png").stat().st_size > 0
+
+
 def test_pl_chart_uses_blue_and_red_not_green(tmp_path):
     out = c.pl_chart([("AAPL", 500.0), ("MSFT", -300.0)], tmp_path)
     text = out.read_text()
