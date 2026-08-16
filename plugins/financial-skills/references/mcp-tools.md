@@ -24,7 +24,8 @@ capabilities in prose and point here. Correcting a name is a one-file edit, and
 The exact tool names and input schemas require completing the server's OAuth
 flow, which needs an interactive session. Until that is done:
 
-1. Run `/mcp` in an interactive session and authorize `robinhood-trading`.
+1. Authorize `robinhood-trading` interactively — the flow is harness-specific,
+   see `references/harness-setup.md`.
 2. Enumerate the exposed tools and their input schemas.
 3. Replace the table below with the real names, arguments, and return shapes,
    set every `Verified` cell to `yes`, and fill in the `Enumerated:` date above.
