@@ -27,7 +27,7 @@ re-deriving it.
 **Install:**
 
 ```
-/plugin marketplace add duncanmckinnon/financial-skills
+/plugin marketplace add duncankmckinnon/financial-skills
 /plugin install financial-skills@financial-skills
 ```
 

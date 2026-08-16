@@ -1,32 +1,57 @@
 # financial-skills
 
-A Claude Code plugin marketplace for personal investing and financial planning.
+Agent skills for personal investing and financial planning, distributed as a
+Claude Code plugin marketplace and usable by any agent that can load a
+`SKILL.md`.
+
+Portfolio data and order execution come from Robinhood's
+[agentic-trading MCP](https://robinhood.com/us/en/support/articles/agentic-trading-overview/);
+charts render through the [`xy`](https://github.com/reflex-dev/xy) library.
 
 ## Install
 
 ```
-/plugin marketplace add duncanmckinnon/financial-skills
+/plugin marketplace add duncankmckinnon/financial-skills
 /plugin install financial-skills@financial-skills
 ```
+
+Then ask your agent to **set up financial skills** — the `financial-setup` skill
+runs a doctor that verifies everything end to end, including an actual test
+chart render, and tells you exactly what is missing.
+
+For other agents, see
+[per-harness setup](plugins/financial-skills/references/harness-setup.md).
 
 ## What it publishes
 
 One plugin, **`financial-skills`**, with six skills:
 
-- **`financial-setup`** — sets up and verifies the environment. Start here.
+| Skill | What it does | Needs a broker |
+|---|---|---|
+| **`financial-setup`** | Sets up and verifies the environment. Start here. | no |
+| **`portfolio-review`** | Allocation, concentration, exposure, unrealized P/L, drift vs target. Read-only. | yes |
+| **`trade-workflow`** | The only path to a placed order: thesis → sizing → preview → explicit confirm → place → log. | yes |
+| **`rebalancing`** | Drift table, minimal trade set, tax and wash-sale checks. | yes |
+| **`retirement-planning`** | Projections, savings rate, account location, glidepath. | no |
+| **`financial-charts`** | All chart rendering, via the `xy` library. | no |
 
-- **`portfolio-review`** — allocation, concentration, exposure, unrealized P/L,
-  drift vs target. Read-only.
-- **`trade-workflow`** — the only path to a placed order: thesis → sizing →
-  preview → explicit confirm → place → log.
-- **`rebalancing`** — drift table, minimal trade set, tax and wash-sale checks.
-- **`retirement-planning`** — projections, savings rate, account location,
-  glidepath. No broker connection required.
-- **`financial-charts`** — all chart rendering, via the `xy` library.
+## Safety
 
-Portfolio data and order execution come from Robinhood's agentic-trading MCP
-(`https://agent.robinhood.com/mcp/trading`), which the plugin wires up on install
-and which you authorize once.
+Order placement is deliberately hard to do by accident:
+
+- Robinhood's own boundary makes every account **read-only at the source**
+  except one dedicated Agentic account.
+- **One skill** (`trade-workflow`) may place an order; the other five state in
+  their own text that they must not.
+- **Preview → explicit confirm → place** is non-skippable. One confirmation
+  authorizes exactly one order, silence is never confirmation, and changing any
+  parameter voids it.
+- Every placed order is appended to a trade log with its thesis and the preview
+  warnings verbatim.
+
+Your data — policy, trade log, charts — lives in
+`${FINANCIAL_HOME:-~/.financial}`, never in this repo and never inside an
+agent's config directory.
 
 ## Works with any agent
 
@@ -64,5 +89,24 @@ Charts run through `uv run --with 'xy==0.0.6'`; there is no venv to manage.
 
 ## Requirements
 
-`uv`, `jq`, and a Claude Code install. `retirement-planning` works standalone;
-the other MCP-backed skills need the Robinhood authorization.
+- **`uv`** — runs `xy` for charts, with no virtualenv to manage
+- **an MCP-capable agent** — only for the three broker-backed skills;
+  `financial-setup`, `retirement-planning`, and `financial-charts` need no
+  broker connection at all
+- **`jq`** — development only, for `scripts/validate.sh`
+
+Run `plugins/financial-skills/scripts/doctor.sh` to check all of it at once.
+
+## Charts
+
+Gains are **blue**, losses are **red** — not green/red. Measured with the
+palette validator: blue↔red separates at protan ΔE 21.6, green↔red at 7.2,
+inside the band where roughly 8% of men cannot tell the pair apart. Polarity
+also carries an explicit sign and a direct label, so it never rides on hue
+alone.
+
+## Not advice
+
+Decision-support tooling for your own accounts. It states its assumptions and
+shows its work; where the data does not support a conclusion, it says so instead
+of estimating quietly.
