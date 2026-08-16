@@ -1,2 +1,14 @@
 .serena/*
 docs/superpowers/*
+
+# Personal financial data must never enter this repo
+charts/
+trade-log.md
+investment-policy.md
+!plugins/financial-skills/assets/investment-policy.template.md
+
+# Python
+__pycache__/
+.pytest_cache/
+__pycache__
+.pytest_cache/*
