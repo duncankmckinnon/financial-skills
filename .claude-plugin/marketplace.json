@@ -1,0 +1,14 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "financial-skills",
+  "description": "Personal investing and financial-planning skills for Claude Code, backed by the Robinhood agentic-trading MCP.",
+  "owner": { "name": "Duncan McKinnon" },
+  "plugins": [
+    {
+      "name": "financial-skills",
+      "source": "./plugins/financial-skills",
+      "description": "Portfolio review, disciplined trade workflows, rebalancing, retirement planning, and financial charting.",
+      "category": "productivity"
+    }
+  ]
+}
