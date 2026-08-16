@@ -1,6 +1,7 @@
 # Investment Policy
 
-Copy to `~/.claude/financial/investment-policy.md` and edit.
+Copy to `$FINANCIAL_HOME/investment-policy.md` (default `~/.financial/`) and
+edit. `scripts/doctor.sh --fix` places it there for you.
 **Never commit this file** — it describes real positions.
 
 Skills read this file to know your targets and limits. Without it they will

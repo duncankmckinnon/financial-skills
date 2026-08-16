@@ -41,15 +41,20 @@ for f in plugins/*/skills/*/SKILL.md; do
   fi
 done
 
-echo "== 7. skills are harness-agnostic =="
-# Skills must work under any agent, not just Claude Code. Harness-specific
-# instructions belong in references/harness-setup.md, not in a SKILL.md.
-for f in plugins/*/skills/*/SKILL.md; do
-  [ -e "$f" ] || continue
-  if grep -nE '~/\.claude/|CLAUDE_PLUGIN_ROOT|(^|[^a-zA-Z])/mcp([^a-zA-Z]|$)|claude plugin ' "$f"; then
-    err "$f contains a Claude-Code-specific path or command; move it to references/harness-setup.md"
+echo "== 7. plugin content is harness-agnostic =="
+# Everything the user reads must work under any agent, not just Claude Code.
+# Scope is every doc the plugin ships -- skills, references AND assets -- not
+# just SKILL.md: a stale legacy path in the policy template shipped once
+# because this check only looked at skills.
+# references/harness-setup.md is the one file allowed to name a harness.
+# The /mcp pattern excludes a following '/' or '-' so the URL
+# .../mcp/trading and the filename references/mcp-tools.md are not flagged.
+for f in $(find plugins/*/skills plugins/*/references plugins/*/assets -name '*.md' 2>/dev/null | sort); do
+  case "$f" in */references/harness-setup.md) continue ;; esac
+  if grep -nE '~/\.claude/|CLAUDE_PLUGIN_ROOT|(^|[^a-zA-Z])/mcp([^a-zA-Z/-]|$)|claude plugin ' "$f"; then
+    err "$f names a harness-specific path or command; move it to references/harness-setup.md"
   else
-    ok "$(basename "$(dirname "$f")") is harness-agnostic"
+    ok "${f#plugins/*/} is harness-agnostic"
   fi
 done
 

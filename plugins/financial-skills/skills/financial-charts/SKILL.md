@@ -86,7 +86,21 @@ the better read for holding-period decisions anyway.
   rather than let this happen.
 - **Relief rule:** categorical slots 3–5 (aqua, yellow, magenta) sit below 3:1
   contrast on the light surface, so charts using them ship visible direct labels
-  or an accompanying table. `allocation_chart` already labels every segment.
+  or an accompanying table.
+
+## Flat portfolios need a table, not just the chart
+
+`allocation_chart` labels only segments wide enough to hold their text (≥6% of
+the total); thinner ones are carried by the legend, because labelling them
+produces overlapping text and a final label off the plot edge.
+
+Call `c.unlabelled_share(items)` before reporting. When it is non-trivial,
+**print the allocation as a table alongside the chart** — that is what satisfies
+the relief rule, and for a flat book the chart alone cannot carry identity.
+
+A portfolio of 100+ near-equal positions has no readable stacked bar at position
+level at all. Group into asset classes or themes first, or report the table
+alone. A chart that cannot be read is worse than no chart.
 - Text wears ink tokens (primary/secondary/muted), never a series color.
 
 ## Output
