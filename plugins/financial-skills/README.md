@@ -34,6 +34,18 @@ existing investment policy**.
 Connecting the broker is harness-specific — see
 [`references/harness-setup.md`](references/harness-setup.md).
 
+## Dependencies
+
+| Dependency | Needed by | Notes |
+|---|---|---|
+| `uv` | `financial-charts`, the doctor | The only manual install; supplies Python too |
+| [`xy`](https://github.com/reflex-dev/xy) `==0.0.6` | `financial-charts` | Fetched by `uv` on first render, then cached — so the first render needs network. Pinned: pre-1.0, and the horizontal-bar axis semantics are relied on directly ([recipes](references/chart-recipes.md)) |
+| `robinhood-trading` MCP | `portfolio-review`, `trade-workflow`, `rebalancing` | OAuth, authorized once per harness |
+| `jq` | `scripts/validate.sh` | Development only |
+
+`financial-setup`, `retirement-planning`, and `financial-charts` need no broker
+connection. `retirement-planning` needs nothing beyond the numbers you supply.
+
 ## Works with any agent
 
 The skills are harness-agnostic: they resolve resource paths at runtime, keep

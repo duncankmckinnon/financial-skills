@@ -89,7 +89,14 @@ Charts run through `uv run --with 'xy==0.0.6'`; there is no venv to manage.
 
 ## Requirements
 
-- **`uv`** — runs `xy` for charts, with no virtualenv to manage
+- **`uv`** — the only thing you install by hand. It supplies Python and fetches
+  the charting dependency on demand, so there is no virtualenv to manage.
+- **[`xy`](https://github.com/reflex-dev/xy) `==0.0.6`** — the charting library,
+  pinned. Fetched automatically by `uv run --with 'xy==0.0.6'` on first render
+  and cached after, so the **first chart render needs network access**. The
+  version is pinned because `xy` is pre-1.0 and its horizontal-bar axis
+  semantics are relied on directly — see
+  [`references/chart-recipes.md`](plugins/financial-skills/references/chart-recipes.md).
 - **an MCP-capable agent** — only for the three broker-backed skills;
   `financial-setup`, `retirement-planning`, and `financial-charts` need no
   broker connection at all

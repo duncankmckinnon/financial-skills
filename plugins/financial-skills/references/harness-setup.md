@@ -78,5 +78,13 @@ and stop cleanly rather than guessing at your holdings.
 
 ## Requirements in every harness
 
-- `uv` — runs `xy` for charts with no virtualenv to manage
+- `uv` — the only manual install. Supplies Python and fetches the charting
+  dependency on demand; no virtualenv to manage.
+- `xy==0.0.6` — the charting library, pinned. `uv run --with 'xy==0.0.6'`
+  fetches it on first use and caches it, so the first chart render needs network
+  access. Do not float the version: the horizontal-bar axis semantics this
+  plugin depends on are unstable pre-1.0 (see `references/chart-recipes.md`).
 - `jq` — development only, for `scripts/validate.sh`
+
+`scripts/doctor.sh` verifies all of the above, including an end-to-end smoke
+chart that proves the whole chain works rather than just its parts.
