@@ -17,6 +17,8 @@ has "$f" "Never green/red"
 lacks "$f" "gains are green"
 has "$f" "never a dual-axis"
 has "$f" "fold"
+has "$f" "not theirs"
+has "$f" "open "
 
 f=$S/portfolio-review/SKILL.md
 [ -f "$f" ] || { echo "FAIL: no $f" >&2; fail=1; }

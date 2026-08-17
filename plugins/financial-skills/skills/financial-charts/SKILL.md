@@ -108,17 +108,39 @@ alone. A chart that cannot be read is worse than no chart.
 Write to `$FINANCIAL_HOME/charts/<YYYY-MM-DD>/`. Both HTML (interactive —
 `xy` gives tooltips, crosshairs, pan and zoom for free) and PNG.
 
-## Mandatory final step
+## Mandatory final steps
 
-**Render, then open the PNG and look at it** before reporting done. The palette
-is validated by script, but nothing validates layout. Two real bugs in this
-module's own history — labels placed off-plot, and tip labels clipped at the
-plot edge — passed their unit tests and were caught only by looking. Check for:
+### 1. Look at it yourself
+
+**Render, then read the PNG and inspect it** before reporting done. The palette
+is validated by script, but nothing validates layout. Every layout bug this
+module has had — labels placed off-plot, tip labels clipped at the plot edge,
+segment labels colliding, an axis labelled in percent while plotting dollars —
+**passed its unit tests** and was caught only by looking. Check for:
 
 - label collisions and labels running off the plot
 - the zero line actually visible on diverging charts
 - legend not covering marks
+- axis label and plotted units actually agreeing
 - dark-mode text legible against the dark surface
+
+### 2. Then show it to the human
+
+**Reading a PNG renders it into your context, not theirs.** The human sees
+nothing unless you open it. Never describe a chart as though they can see it.
+
+Open the interactive HTML — it carries tooltips, crosshair, pan and zoom:
+
+```bash
+open "$FINANCIAL_HOME/charts/<date>/<name>.html"     # macOS
+xdg-open "$FINANCIAL_HOME/charts/<date>/<name>.html" # Linux
+```
+
+If the environment has no display, say so and give the file path instead of
+pretending the chart was delivered.
+
+Report the numbers in text as well. A chart the human has not opened yet, or
+cannot open, must not be the only place a finding appears.
 
 ## Boundaries
 
