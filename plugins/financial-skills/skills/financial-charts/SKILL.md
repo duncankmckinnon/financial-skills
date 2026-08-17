@@ -49,7 +49,33 @@ Every renderer takes `out_dir` and `mode` (`"light"` or `"dark"`), writes
 `<name>.html` and `<name>.png`, and returns the HTML path. `c.chart_dir()`
 returns today's dated output directory under `$FINANCIAL_HOME`.
 
-## Choosing the form — by the data's job, not by convention
+## Charting anything
+
+The module is **not limited to portfolio data**. Pick the generic renderer by
+the data's job — it applies the palette, folding, labelling and axis rules for
+you, whatever the subject:
+
+| The reader's job | Function |
+|---|---|
+| Compare magnitude across categories | `magnitude_chart(items, …)` |
+| Follow one or more series over a common x | `series_chart(x, {name: values}, …)` |
+| See part-to-whole | `part_to_whole_chart(items, …)` |
+| See above/below a baseline | `diverging_chart(pairs, …)` |
+| See the shape of a sample | `distribution_chart(values, …)` |
+| See a grid of values | `matrix_chart(labels, matrix, diverging=…)` |
+| See how two measures relate | `relationship_chart(x, y, …)` |
+
+`series_chart(..., emphasis="name")` paints one series in the accent hue and the
+rest gray. When one line is the point and the others are context, that is the
+honest form — reach for it before a rainbow of equal-weight series.
+
+`matrix_chart(diverging=True)` only when the data has a meaningful zero or
+midpoint. Otherwise the sequential ramp; a diverging ramp on data with no
+midpoint invents a story about the middle of the range.
+
+## Financial presets
+
+Thin wrappers over the generic renderers, with the right labels and units:
 
 | The reader must… | Function | Form |
 |---|---|---|
@@ -57,7 +83,6 @@ returns today's dated output directory under `$FINANCIAL_HOME`.
 | See portfolio value over time | `value_over_time_chart` | Line, single series |
 | See over/under vs target | `drift_chart` | Diverging bar on a zero line |
 | See per-position profit and loss | `pl_chart` | Diverging bar, sorted |
-| See the shape of returns | `distribution_chart` | Histogram |
 | See how holdings move together | `correlation_chart` | Diverging heatmap |
 | See a retirement projection | `projection_chart` | Line, median emphasized |
 | See contributions vs growth | `contributions_chart` | Stacked area |
@@ -103,10 +128,24 @@ level at all. Group into asset classes or themes first, or report the table
 alone. A chart that cannot be read is worse than no chart.
 - Text wears ink tokens (primary/secondary/muted), never a series color.
 
-## Output
+## Output — ephemeral by default
 
-Write to `$FINANCIAL_HOME/charts/<YYYY-MM-DD>/`. Both HTML (interactive —
-`xy` gives tooltips, crosshairs, pan and zoom for free) and PNG.
+`c.chart_dir()` returns a **temporary directory**, stable for the run so a
+batch of charts lands together. Charts are derived output: regenerable from
+live data in seconds, and they hold real position and P/L figures. Keeping
+every render forever accumulates sensitive data with no lifecycle.
+
+Use `c.chart_dir(keep=True)` — archiving under `$FINANCIAL_HOME/charts/<date>/`
+— only when the human asks for a chart they want to keep. Tell them where it
+went when you do.
+
+Both HTML (interactive — `xy` gives tooltips, crosshairs, pan and zoom for
+free) and PNG are written.
+
+Every chart carries an **as-of stamp** on its axis label. Do not strip it: an
+ephemeral chart that someone saves off has no directory name to fall back on,
+and an undated financial chart is indistinguishable from a stale one the moment
+prices move.
 
 ## Mandatory final steps
 
