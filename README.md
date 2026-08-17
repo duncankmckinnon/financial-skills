@@ -8,6 +8,13 @@ Portfolio data and order execution come from Robinhood's
 [agentic-trading MCP](https://robinhood.com/us/en/support/articles/agentic-trading-overview/);
 charts render through the [`xy`](https://github.com/reflex-dev/xy) library.
 
+![A portfolio review on one page: allocation by theme, drift vs target,
+unrealized P/L, portfolio value over time, a correlation heatmap and income by
+source, each panel carrying a short written takeaway underneath.](docs/dashboard.png)
+
+*One `portfolio-review` run, rendered by `financial-charts` and opened as a
+single page. Synthetic data — no real holdings.*
+
 ## Install
 
 ```
@@ -114,6 +121,17 @@ palette validator: blue↔red separates at protan ΔE 21.6, green↔red at 7.2,
 inside the band where roughly 8% of men cannot tell the pair apart. Polarity
 also carries an explicit sign and a direct label, so it never rides on hue
 alone.
+
+**A run of charts opens as one page, not one tab each.** A review is a single
+finding, not six of them, and charts you have to open one at a time cannot be
+compared. Every chart stays interactive on that page — tooltips, crosshair, pan
+and zoom — and links out to itself for a closer look.
+
+Each panel can carry a written takeaway: a chart shows a shape, and the note
+says what the shape means. Notes describe **what the chart shows, not what to
+do about it** — recommendations belong to `rebalancing` and `trade-workflow`,
+which carry sizing, wash-sale checks and an explicit confirmation gate that a
+caption under a chart does not.
 
 ## Not advice
 
