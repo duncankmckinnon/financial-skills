@@ -18,6 +18,7 @@ lacks "$f" "gains are green"
 has "$f" "never a dual-axis"
 has "$f" "fold"
 has "$f" "not theirs"
+has "$f" "c.show("
 has "$f" "magnitude_chart"
 has "$f" "ephemeral"
 has "$f" "as-of stamp"
@@ -68,7 +69,7 @@ fi
 f=$S/financial-setup/SKILL.md
 [ -f "$f" ] || { echo "FAIL: no $f" >&2; fail=1; }
 if [ -f "$f" ]; then
-  has "$f" "scripts/doctor.sh"
+  has "$f" "scripts/doctor.py"
   has "$f" "references/harness-setup.md"
   has "$f" "--fix"
   has "$f" "FINANCIAL_HOME"

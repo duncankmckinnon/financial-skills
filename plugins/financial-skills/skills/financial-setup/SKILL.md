@@ -14,7 +14,7 @@ environment is already fine wastes their time.
 ## 1. Run the doctor
 
 ```bash
-"$ROOT/scripts/doctor.sh"
+uv run python "$ROOT/scripts/doctor.py"
 ```
 
 Resolve `$ROOT` in this order — never hardcode an install path, since it differs
@@ -38,7 +38,7 @@ Re-run with `--fix` to create the data home, an investment policy from the
 template, and `env.sh`:
 
 ```bash
-"$ROOT/scripts/doctor.sh" --fix
+uv run python "$ROOT/scripts/doctor.py" --fix
 ```
 
 `--fix` is additive only. It will **never overwrite** an existing investment

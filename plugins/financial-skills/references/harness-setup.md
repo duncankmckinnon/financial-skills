@@ -18,7 +18,7 @@ Everything harness-specific lives here, not in a `SKILL.md`.
 `scripts/charts.py` is self-locating — it finds `assets/palette.py` from its own
 path, so a caller only needs to know where `charts.py` is.
 
-`scripts/doctor.sh` resolves the root once and records it in
+`scripts/doctor.py` resolves the root once and records it in
 `$FINANCIAL_HOME/env.sh`, so skills can source one file instead of each
 re-deriving it.
 
@@ -33,7 +33,7 @@ re-deriving it.
 
 Resources install to `~/.claude/plugins/cache/financial-skills/financial-skills/<sha>/`.
 The `<sha>` changes on every update, so never hardcode it — re-run
-`scripts/doctor.sh` after an update and it will re-resolve.
+`scripts/doctor.py` after an update and it will re-resolve.
 
 **Connect the MCP server:** the plugin ships `.mcp.json`, so installing it
 registers `robinhood-trading`. Authorize with:
@@ -45,7 +45,7 @@ registers `robinhood-trading`. Authorize with:
 **Note on data location:** earlier versions of this plugin wrote to
 `~/.claude/financial/`. That was wrong — it puts your financial data inside a
 tool's config directory. The default is now `~/.financial`. If you have an
-existing `~/.claude/financial/`, `doctor.sh` will detect it and offer to keep
+existing `~/.claude/financial/`, `doctor.py` will detect it and offer to keep
 using it via `FINANCIAL_HOME` rather than splitting your data across two places.
 
 ## Other MCP-capable agents
@@ -86,5 +86,26 @@ and stop cleanly rather than guessing at your holdings.
   plugin depends on are unstable pre-1.0 (see `references/chart-recipes.md`).
 - `jq` — development only, for `scripts/validate.sh`
 
-`scripts/doctor.sh` verifies all of the above, including an end-to-end smoke
-chart that proves the whole chain works rather than just its parts.
+`scripts/doctor.py` verifies all of the above, including an end-to-end smoke
+chart that proves the whole chain works rather than just its parts:
+
+```
+uv run python <plugin>/scripts/doctor.py [--fix]
+```
+
+## Windows
+
+Everything a user runs is cross-platform. `doctor.py` and the charting module
+are pure Python, `xy` 0.0.6 publishes `win32`, `win_amd64` and `win_arm64`
+wheels, and `c.show()` opens charts through the OS default browser on all three
+platforms.
+
+`--fix` writes **both** `env.sh` and `env.ps1`, so PowerShell users get
+`$env:FINANCIAL_SKILLS_ROOT` rather than an unusable `export` line.
+
+The only bash dependencies are `scripts/validate.sh` and
+`tests/test_skill_contracts.sh`, which are development-only — run them under
+WSL or Git Bash if you are contributing from Windows.
+
+**Untested on Windows.** The above is verified by inspection and by the
+published wheel list, not by a run on an actual Windows machine.

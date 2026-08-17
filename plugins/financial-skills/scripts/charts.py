@@ -73,6 +73,26 @@ def chart_dir(date=None, keep=False):
     return _SCRATCH
 
 
+def show(path):
+    """Open a rendered chart for the human. macOS, Linux and Windows.
+
+    Reading a PNG renders it into the agent's context, not the human's -- they
+    see nothing until something opens it. Prefer the .html, which carries
+    tooltips, crosshair, pan and zoom.
+
+    Returns True if a viewer was launched. False means no display is available:
+    report the file path instead of implying the chart was delivered.
+    """
+    import webbrowser
+    p = pathlib.Path(path).resolve()
+    if not p.exists():
+        raise FileNotFoundError(p)
+    try:
+        return bool(webbrowser.open(p.as_uri()))
+    except Exception:
+        return False
+
+
 def as_of():
     """Timestamp a chart is rendered at."""
     import datetime
