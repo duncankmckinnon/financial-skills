@@ -8,13 +8,6 @@ Portfolio data and order execution come from Robinhood's
 [agentic-trading MCP](https://robinhood.com/us/en/support/articles/agentic-trading-overview/);
 charts render through the [`xy`](https://github.com/reflex-dev/xy) library.
 
-![A portfolio review on one page: allocation by theme, drift vs target,
-unrealized P/L, portfolio value over time, a correlation heatmap and income by
-source, each panel carrying a short written takeaway underneath.](docs/dashboard.png)
-
-*One `portfolio-review` run, rendered by `financial-charts` and opened as a
-single page. Synthetic data — no real holdings.*
-
 ## Install
 
 ```
@@ -116,11 +109,12 @@ Run `plugins/financial-skills/scripts/doctor.py` to check all of it at once.
 
 ## Charts
 
-Gains are **blue**, losses are **red** — not green/red. Measured with the
-palette validator: blue↔red separates at protan ΔE 21.6, green↔red at 7.2,
-inside the band where roughly 8% of men cannot tell the pair apart. Polarity
-also carries an explicit sign and a direct label, so it never rides on hue
-alone.
+![A portfolio review on one page: allocation by theme, drift vs target,
+unrealized P/L, portfolio value over time, a correlation heatmap and income by
+source, each panel carrying a short written takeaway underneath.](docs/dashboard.png)
+
+*One `portfolio-review` run, rendered by `financial-charts` and opened as a
+single page. Synthetic data — no real holdings.*
 
 **A run of charts opens as one page, not one tab each.** A review is a single
 finding, not six of them, and charts you have to open one at a time cannot be
@@ -132,6 +126,31 @@ says what the shape means. Notes describe **what the chart shows, not what to
 do about it** — recommendations belong to `rebalancing` and `trade-workflow`,
 which carry sizing, wash-sale checks and an explicit confirmation gate that a
 caption under a chart does not.
+
+### Putting your own charts on it
+
+The dashboard is not limited to the portfolio presets, and neither is the
+charting module. Ask for anything chartable and it lands on the same page,
+because every renderer writes into the same run directory:
+
+> "Chart my trailing 12-month income by source and add it to the review."
+
+Pick the renderer by **the reader's job**, not by the subject — each one
+applies the palette, folding, labelling and axis rules for you:
+
+| The reader must… | Renderer |
+|---|---|
+| Compare magnitude across categories | `magnitude_chart` |
+| Follow one or more series over a common x | `series_chart` |
+| See part-to-whole | `part_to_whole_chart` |
+| See above/below a baseline | `diverging_chart` |
+| See the shape of a sample | `distribution_chart` |
+| See a grid of values | `matrix_chart` |
+| See how two measures relate | `relationship_chart` |
+
+Full API and the rules each renderer enforces — including the palette, the
+folding rule and why gains are blue rather than green:
+[`skills/financial-charts/SKILL.md`](plugins/financial-skills/skills/financial-charts/SKILL.md).
 
 ## Not advice
 
