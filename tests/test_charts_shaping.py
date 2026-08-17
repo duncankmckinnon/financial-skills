@@ -30,9 +30,11 @@ def test_financial_home_honours_the_env_var(monkeypatch, tmp_path):
     assert c.financial_home() == tmp_path / "elsewhere"
 
 
-def test_chart_dir_is_dated_under_the_financial_home(monkeypatch, tmp_path):
+def test_chart_dir_archives_under_the_financial_home_only_when_asked(
+        monkeypatch, tmp_path):
+    """Charts are ephemeral by default; archiving is an explicit choice."""
     monkeypatch.setenv("FINANCIAL_HOME", str(tmp_path))
-    d = c.chart_dir()
+    d = c.chart_dir(keep=True)
     assert d.parent == tmp_path / "charts"
     assert len(d.name) == 10 and d.name.count("-") == 2  # YYYY-MM-DD
 

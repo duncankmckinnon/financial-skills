@@ -41,11 +41,52 @@ def financial_home():
     return pathlib.Path.home() / ".financial"
 
 
-def chart_dir(date=None):
-    """Dated chart output directory under the financial home."""
+_SCRATCH = None
+
+
+def _reset_scratch():
+    """Test hook: forget the current run's scratch directory."""
+    global _SCRATCH
+    _SCRATCH = None
+
+
+def chart_dir(date=None, keep=False):
+    """Where to write charts.
+
+    Ephemeral by default: charts are derived output, regenerable from live
+    data in seconds, and they hold real position and P/L figures. Keeping
+    every render forever accumulates sensitive data with no lifecycle.
+
+    The scratch directory is stable within a run, so a batch of charts lands
+    together and can be opened as a set.
+
+    Pass keep=True to archive deliberately under the financial home.
+    """
     import datetime
-    day = date or datetime.date.today().isoformat()
-    return financial_home() / "charts" / day
+    if keep:
+        day = date or datetime.date.today().isoformat()
+        return financial_home() / "charts" / day
+    global _SCRATCH
+    if _SCRATCH is None:
+        import tempfile
+        _SCRATCH = pathlib.Path(tempfile.mkdtemp(prefix="financial-charts-"))
+    return _SCRATCH
+
+
+def as_of():
+    """Timestamp a chart is rendered at."""
+    import datetime
+    return datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+
+
+def _axis_label(text):
+    """Axis label carrying the as-of stamp.
+
+    A financial chart with no date on its face is indistinguishable from a
+    stale one the moment prices move -- and an ephemeral chart that someone
+    saves off has no directory name to fall back on.
+    """
+    return f"{text}  ·  as of {as_of()}"
 
 
 def fold_tail(items, keep=7):
@@ -128,34 +169,52 @@ def _write(chart, out_dir, stem):
 def _padded_domain(values, pad=0.28):
     """Value-axis domain with headroom so tip labels are not clipped.
 
-    Always includes zero -- a diverging chart that crops its own baseline
-    misstates the data.
+    Always includes zero -- a chart that crops its own baseline misstates the
+    data. Padding is applied only on sides the data actually reaches: an
+    all-positive series gets no empty negative arm, which otherwise halves the
+    usable width and implies losses that are not there.
     """
     lo, hi = min(list(values) + [0.0]), max(list(values) + [0.0])
     span = (hi - lo) or 1.0
-    return (lo - span * pad, hi + span * pad)
+    return (lo - span * pad if lo < 0 else 0.0,
+            hi + span * pad if hi > 0 else 0.0)
 
 
 # A segment narrower than its own label text has nowhere to put it. Labelling
 # it anyway produces overlapping text and a final label that runs off the plot
 # -- observed on a real 145-position portfolio where the largest holding was
-# 4.7%. Segments below this share are carried by the legend instead.
+# 4.7%, then again on a theme chart where a 6.5% segment carried a 22-character
+# label. Width alone is not the test: a long label needs a wide segment, so the
+# threshold scales with the text.
 MIN_LABEL_SHARE = 0.06
+# Fraction of the value axis one character occupies at the default figure
+# width. Deliberately generous -- an omitted label costs nothing (the legend
+# carries it) while an overlapping one makes the chart unreadable.
+CHAR_SHARE = 0.0062
+
+
+def _label_fits(text, share, min_share=MIN_LABEL_SHARE):
+    """Can a segment holding `share` of the axis display `text` inline?"""
+    return share >= max(min_share, len(text) * CHAR_SHARE)
+
+
+def _segment_label(label, value, total):
+    return f"{label} {value / total * 100:.1f}%"
 
 
 def _allocation_labels(folded, mode, total=None, min_share=MIN_LABEL_SHARE):
     """Direct label per segment wide enough to hold one, at its midpoint.
 
-    Segments below `min_share` of the total are left to the legend rather
+    Segments too narrow for their own text are left to the legend rather
     than labelled into a collision.
     """
     if total is None:
         total = sum(v for _, v in folded) or 1.0
     out, run = [], 0.0
     for label, value in folded:
-        if value / total >= min_share:
-            out.append(xy.label(run + value / 2, 0.0,
-                                f"{label} {value / total * 100:.1f}%",
+        text = _segment_label(label, value, total)
+        if _label_fits(text, value / total, min_share):
+            out.append(xy.label(run + value / 2, 0.0, text,
                                 color=p.INK[mode]["secondary"], anchor="middle"))
         run += value
     return out
@@ -170,7 +229,10 @@ def unlabelled_share(items, keep=7, min_share=MIN_LABEL_SHARE):
     """
     folded = fold_tail(items, keep=keep)
     total = sum(v for _, v in folded) or 1.0
-    return sum(v for _, v in folded if v / total < min_share) / total
+    return sum(
+        v for l, v in folded
+        if not _label_fits(_segment_label(l, v, total), v / total, min_share)
+    ) / total
 
 
 def _diverging_bar_labels(pairs, mode, unit):
@@ -181,8 +243,13 @@ def _diverging_bar_labels(pairs, mode, unit):
             for i, (_, v) in enumerate(pairs)]
 
 
-def allocation_chart(items, out_dir, mode="light", title="Allocation"):
-    """Part-to-whole: horizontal stacked bar, top 7 + Other. Never a pie."""
+def part_to_whole_chart(items, out_dir, mode="light", title="Share",
+                        axis_label="% of total", stem="part_to_whole"):
+    """Part-to-whole for any categorical data: horizontal stacked bar.
+
+    Top 7 by value plus a folded "Other". Never a pie -- long names and more
+    than ~7 classes are the normal case, and a pie handles neither.
+    """
     folded = fold_tail(items, keep=7)
     colors = series_colors(len(folded), mode)
     total = sum(v for _, v in folded) or 1.0
@@ -207,9 +274,15 @@ def allocation_chart(items, out_dir, mode="light", title="Allocation"):
         # segments, which are exactly the ones it has to explain.
         xy.legend(loc="upper center", ncols=4),
         xy.y_axis(tick_values=[0.0], tick_labels=[title], domain=(-0.4, 1.5)),
-        xy.x_axis(label="% of portfolio", domain=(0.0, 100.0)),
+        xy.x_axis(label=_axis_label(axis_label), domain=(0.0, 100.0)),
         _theme(mode),
-    ), out_dir, "allocation")
+    ), out_dir, stem)
+
+
+def allocation_chart(items, out_dir, mode="light", title="Allocation"):
+    """Financial preset: portfolio allocation as part-to-whole."""
+    return part_to_whole_chart(items, out_dir, mode=mode, title=title,
+                               axis_label="% of portfolio", stem="allocation")
 
 
 def _diverging_bar(pairs, out_dir, mode, stem, unit, axis_label):
@@ -230,54 +303,140 @@ def _diverging_bar(pairs, out_dir, mode, stem, unit, axis_label):
         *marks, *_diverging_bar_labels(pairs, mode, unit),
         xy.vline(0, color=p.INK[mode]["baseline"], width=2),  # visible zero
         xy.y_axis(tick_values=xs, tick_labels=[l for l, _ in pairs]),
-        xy.x_axis(label=axis_label,
+        xy.x_axis(label=_axis_label(axis_label),
                   domain=_padded_domain([v for _, v in pairs])),
         _theme(mode),
     ), out_dir, stem)
 
 
+def diverging_chart(pairs, out_dir, mode="light", unit="", axis_label="change",
+                    stem="diverging", sort=True):
+    """Polarity for any data: diverging bar on a visible zero line.
+
+    Positives blue, negatives red, every bar signed and directly labelled --
+    polarity never rides on hue alone.
+    """
+    ordered = sorted(pairs, key=lambda kv: kv[1]) if sort else list(pairs)
+    return _diverging_bar(ordered, out_dir, mode, stem, unit, axis_label)
+
+
+def magnitude_chart(items, out_dir, mode="light", title="Magnitude", unit="",
+                    stem="magnitude", keep=None):
+    """Compare magnitude across arbitrary categories: horizontal bars.
+
+    One hue -- the categories are the subject, not their identity, so this is
+    a sequential job rather than a categorical one.
+    """
+    ordered = sorted(items, key=lambda kv: kv[1])
+    if keep:
+        ordered = sorted(fold_tail(ordered, keep=keep), key=lambda kv: kv[1])
+    xs = [float(i) for i in range(len(ordered))]
+    values = [v for _, v in ordered]
+    return _write(xy.bar_chart(
+        xy.bar(x=xs, y=values, color=p.CATEGORICAL[mode][0],
+               orientation="horizontal", width=0.6),
+        *[xy.label(v, x, f"{v:,.1f}{unit}" if unit != "$" else f"${v:,.0f}",
+                   color=p.INK[mode]["secondary"])
+          for x, v in zip(xs, values)],
+        xy.y_axis(tick_values=xs, tick_labels=[l for l, _ in ordered]),
+        xy.x_axis(label=_axis_label(title), domain=_padded_domain(values)),
+        _theme(mode),
+    ), out_dir, stem)
+
+
+def series_chart(x, series, out_dir, mode="light", title="Value",
+                 x_label="", stem="series", emphasis=None):
+    """One or more series over a common x.
+
+    A single series gets no legend -- the axis label names it. Two or more get
+    a legend in fixed slot order. Pass `emphasis` to paint one series in the
+    accent hue and the rest in the de-emphasis gray, which is usually the
+    honest form when one line is the point and the others are context.
+    """
+    names = list(series)
+    marks = []
+    if emphasis:
+        for n in names:
+            if n == emphasis:
+                continue
+            marks.append(xy.line(x, series[n], color=p.DE_EMPHASIS[mode],
+                                 width=2, name=n))
+        marks.append(xy.line(x, series[emphasis],
+                             color=p.CATEGORICAL[mode][0], width=2,
+                             name=emphasis))
+    else:
+        colors = series_colors(len(names), mode)
+        for n, color in zip(names, colors):
+            marks.append(xy.line(x, series[n], color=color, width=2, name=n))
+    chrome = [xy.y_axis(label=title), xy.x_axis(label=_axis_label(x_label))]
+    if len(names) > 1:
+        chrome.insert(0, xy.legend())
+    return _write(xy.line_chart(*marks, *chrome, _theme(mode)), out_dir, stem)
+
+
+def relationship_chart(x, y, out_dir, mode="light", x_label="x", y_label="y",
+                       stem="relationship"):
+    """Relationship between two measures: scatter, single hue."""
+    return _write(xy.scatter_chart(
+        xy.scatter(x, y, color=p.CATEGORICAL[mode][0]),
+        xy.y_axis(label=y_label),
+        xy.x_axis(label=_axis_label(x_label)),
+        _theme(mode),
+    ), out_dir, stem)
+
+
+def matrix_chart(labels, matrix, out_dir, mode="light", title="Matrix",
+                 diverging=False, domain=None, stem="matrix"):
+    """Grid of values as a heatmap.
+
+    diverging=True for data with a meaningful zero or midpoint (correlation,
+    change vs baseline); the ramp then runs red - neutral - blue. Otherwise a
+    single-hue sequential ramp, which is the safer default for magnitude.
+    """
+    ramp = p.diverging_ramp(mode, 5) if diverging else p.SEQUENTIAL_BLUE
+    kw = {"domain": domain} if domain else {}
+    return _write(xy.heatmap_chart(
+        xy.heatmap(matrix, x=labels, y=labels, colormap=ramp, **kw),
+        xy.x_axis(label=_axis_label(title)),
+        _theme(mode),
+    ), out_dir, stem)
+
+
 def drift_chart(current, target, out_dir, mode="light", title="Drift vs target"):
-    """Polarity: diverging bar centred on a visible zero line."""
-    return _diverging_bar(compute_drift(current, target), out_dir, mode,
-                          "drift", "%", "percentage points vs target")
+    """Financial preset: allocation drift vs policy targets."""
+    return diverging_chart(compute_drift(current, target), out_dir, mode=mode,
+                           unit="%", axis_label="percentage points vs target",
+                           stem="drift", sort=False)
 
 
 def pl_chart(items, out_dir, mode="light", title="Unrealized P/L"):
-    """Polarity: diverging bar, sorted by magnitude."""
-    ordered = sorted(items, key=lambda kv: kv[1])
-    return _diverging_bar(ordered, out_dir, mode, "pl", "$",
-                          "unrealized profit / loss")
+    """Financial preset: unrealized profit and loss per position."""
+    return diverging_chart(items, out_dir, mode=mode, unit="$",
+                           axis_label="unrealized profit / loss", stem="pl")
 
 
 def value_over_time_chart(dates, values, out_dir, mode="light",
                           title="Portfolio value"):
-    """Trend, single series: no legend -- the title names it."""
-    return _write(xy.line_chart(
-        xy.line(dates, values, color=p.CATEGORICAL[mode][0], width=2),
-        xy.y_axis(label=title),
-        _theme(mode),
-    ), out_dir, "value_over_time")
+    """Financial preset: a single value series over time."""
+    return series_chart(dates, {title: values}, out_dir, mode=mode,
+                        title=title, stem="value_over_time")
 
 
-def distribution_chart(returns, out_dir, mode="light",
-                       title="Return distribution"):
-    """Distribution: histogram, single hue."""
+def distribution_chart(values, out_dir, mode="light",
+                       title="Distribution", bins=30, stem="distribution"):
+    """Distribution of any numeric sample: histogram, single hue."""
     return _write(xy.histogram_chart(
-        xy.hist(returns, bins=30, color=p.CATEGORICAL[mode][0]),
-        xy.x_axis(label=title),
+        xy.hist(values, bins=bins, color=p.CATEGORICAL[mode][0]),
+        xy.x_axis(label=_axis_label(title)),
         _theme(mode),
-    ), out_dir, "distribution")
+    ), out_dir, stem)
 
 
 def correlation_chart(labels, matrix, out_dir, mode="light",
                       title="Correlation"):
-    """-1..+1 is polarity, so the ramp diverges around a neutral midpoint."""
-    return _write(xy.heatmap_chart(
-        xy.heatmap(matrix, x=labels, y=labels,
-                   colormap=p.diverging_ramp(mode, 5), domain=(-1.0, 1.0)),
-        xy.x_axis(label=title),
-        _theme(mode),
-    ), out_dir, "correlation")
+    """Financial preset: -1..+1 correlation as a diverging matrix."""
+    return matrix_chart(labels, matrix, out_dir, mode=mode, title=title,
+                        diverging=True, domain=(-1.0, 1.0), stem="correlation")
 
 
 def projection_chart(years, median, bands, out_dir, mode="light",
