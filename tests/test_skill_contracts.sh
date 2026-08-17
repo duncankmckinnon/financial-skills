@@ -19,6 +19,15 @@ has "$f" "never a dual-axis"
 has "$f" "fold"
 has "$f" "not theirs"
 has "$f" "c.show("
+# A batch of charts is one finding. The skill must route a batch through the
+# dashboard rather than opening a tab per chart.
+has "$f" "c.show_all("
+has "$f" "dashboard"
+# Commentary must read the chart, not prescribe a trade: recommendations route
+# through rebalancing and trade-workflow, which have confirmation gates that a
+# caption under a chart does not.
+has "$f" "note="
+has "$f" "not what to do about it"
 has "$f" "magnitude_chart"
 has "$f" "ephemeral"
 has "$f" "as-of stamp"

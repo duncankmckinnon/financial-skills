@@ -49,6 +49,42 @@ Every renderer takes `out_dir` and `mode` (`"light"` or `"dark"`), writes
 `<name>.html` and `<name>.png`, and returns the HTML path. `c.chart_dir()`
 returns today's dated output directory under `$FINANCIAL_HOME`.
 
+Pass the **same `out_dir` for every chart of a run** — that is what lets
+`c.show_all()` collect them into one page at the end.
+
+## Commentary
+
+Every renderer takes `note=` — one to three sentences printed under that chart
+on the dashboard. A chart shows a shape; the note says what the shape means,
+which the chart itself cannot do.
+
+```python
+c.allocation_chart(items, d, note=(
+    "47% sits in AI / semis — nearly half the book in one correlated theme.\n"
+    "The next seven positions together are smaller than that single slice."))
+```
+
+Newlines survive, so prefer two short lines to one long one.
+
+**Say what the chart shows, not what to do about it.** "47% in one correlated
+theme" reads the chart. "Trim NVDA" is a recommendation, and recommendations
+belong to `rebalancing` and `trade-workflow`, which carry position sizing, wash
+-sale checks and an explicit confirmation gate. A caption under a chart has
+none of those, and the human may act on it without ever seeing the reasoning.
+
+Three more rules:
+
+- **Only what the chart supports.** A note asserting something the reader
+  cannot see in the chart above it is unsourced — put it in the text report
+  where it can carry its numbers.
+- **The note is not the report.** It supplements the numbers you report in
+  text; it does not replace them. The human may never open the dashboard.
+- **No note is better than a filler note.** "Allocation across positions"
+  restates the title. Leave `note=` unset and the panel prints nothing.
+
+For a flat portfolio where `c.unlabelled_share(items)` is high, the note is a
+good place to point at the table that carries the identities the chart cannot.
+
 ## Charting anything
 
 The module is **not limited to portfolio data**. Pick the generic renderer by
@@ -140,7 +176,8 @@ Use `c.chart_dir(keep=True)` — archiving under `$FINANCIAL_HOME/charts/<date>/
 went when you do.
 
 Both HTML (interactive — `xy` gives tooltips, crosshairs, pan and zoom for
-free) and PNG are written.
+free) and PNG are written, plus a `dashboard.html` collecting the run's charts
+once you call `c.dashboard()` or `c.show_all()`.
 
 Every chart carries an **as-of stamp** on its axis label. Do not strip it: an
 ephemeral chart that someone saves off has no directory name to fall back on,
@@ -168,17 +205,35 @@ segment labels colliding, an axis labelled in percent while plotting dollars —
 **Reading a PNG renders it into your context, not theirs.** The human sees
 nothing unless you open it. Never describe a chart as though they can see it.
 
-Use `c.show(path)` — it works on macOS, Linux and Windows, and opens the
-interactive HTML with its tooltips, crosshair, pan and zoom:
+**Render the whole batch, then open it once with `c.show_all()`.** A review is
+one finding, not N — opening a tab per chart makes the human assemble the story
+from separate windows, and a chart they closed to reach the next one is a chart
+they cannot compare against.
 
 ```python
-path = c.allocation_chart(items, c.chart_dir())
-if not c.show(path):
-    print(f"no display available - chart written to {path}")
+d = c.chart_dir()                       # stable for the run
+c.allocation_chart(items, d, note="47% sits in AI / semis — half the book.")
+c.pl_chart(pl, d, note="Gains concentrated in NVDA; losses small and spread.")
+c.drift_chart(current, target, d)       # no note is fine
+if not c.show_all(d, title="Portfolio review"):
+    print(f"no display available - dashboard written to {d}/dashboard.html")
 ```
 
-`show()` returns False when no viewer could be launched. Report the file path
-then, rather than implying the chart was delivered.
+`show_all()` builds `dashboard.html` in the run directory — every chart of the
+run in one grid, each still fully interactive and each linking out to itself
+for a closer look — and opens that single tab. Headings come from each
+renderer's `title=`, so pass a real one; panels appear in render order, so
+render in the order the story is told.
+
+For a genuinely single chart, `c.show(path)` still opens that chart alone.
+Both return False when no viewer could be launched. Report the file path then,
+rather than implying the chart was delivered.
+
+Panels are sized to the chart's own 900×420 render — `xy` does not reflow to
+its container, so a stretched frame bands the panel white and a narrowed one
+crops the axis label. Two charts sit side by side only on a viewport wide
+enough to hold both at full size; otherwise they stack. Do not "fix" this by
+making the frames fluid.
 
 Report the numbers in text as well. A chart the human has not opened yet, or
 cannot open, must not be the only place a finding appears.
