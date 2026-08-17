@@ -139,23 +139,38 @@ def _padded_domain(values, pad=0.28):
 # A segment narrower than its own label text has nowhere to put it. Labelling
 # it anyway produces overlapping text and a final label that runs off the plot
 # -- observed on a real 145-position portfolio where the largest holding was
-# 4.7%. Segments below this share are carried by the legend instead.
+# 4.7%, then again on a theme chart where a 6.5% segment carried a 22-character
+# label. Width alone is not the test: a long label needs a wide segment, so the
+# threshold scales with the text.
 MIN_LABEL_SHARE = 0.06
+# Fraction of the value axis one character occupies at the default figure
+# width. Deliberately generous -- an omitted label costs nothing (the legend
+# carries it) while an overlapping one makes the chart unreadable.
+CHAR_SHARE = 0.0062
+
+
+def _label_fits(text, share, min_share=MIN_LABEL_SHARE):
+    """Can a segment holding `share` of the axis display `text` inline?"""
+    return share >= max(min_share, len(text) * CHAR_SHARE)
+
+
+def _segment_label(label, value, total):
+    return f"{label} {value / total * 100:.1f}%"
 
 
 def _allocation_labels(folded, mode, total=None, min_share=MIN_LABEL_SHARE):
     """Direct label per segment wide enough to hold one, at its midpoint.
 
-    Segments below `min_share` of the total are left to the legend rather
+    Segments too narrow for their own text are left to the legend rather
     than labelled into a collision.
     """
     if total is None:
         total = sum(v for _, v in folded) or 1.0
     out, run = [], 0.0
     for label, value in folded:
-        if value / total >= min_share:
-            out.append(xy.label(run + value / 2, 0.0,
-                                f"{label} {value / total * 100:.1f}%",
+        text = _segment_label(label, value, total)
+        if _label_fits(text, value / total, min_share):
+            out.append(xy.label(run + value / 2, 0.0, text,
                                 color=p.INK[mode]["secondary"], anchor="middle"))
         run += value
     return out
@@ -170,7 +185,10 @@ def unlabelled_share(items, keep=7, min_share=MIN_LABEL_SHARE):
     """
     folded = fold_tail(items, keep=keep)
     total = sum(v for _, v in folded) or 1.0
-    return sum(v for _, v in folded if v / total < min_share) / total
+    return sum(
+        v for l, v in folded
+        if not _label_fits(_segment_label(l, v, total), v / total, min_share)
+    ) / total
 
 
 def _diverging_bar_labels(pairs, mode, unit):

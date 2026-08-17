@@ -59,6 +59,20 @@ def test_allocation_omits_labels_for_segments_too_thin_to_hold_them():
     assert not any("Real assets" in t for t in labelled)  # 3% cannot either
 
 
+def test_a_long_label_needs_a_wider_segment_than_a_short_one():
+    """A 6.5% segment held a 22-char label and collided with its neighbour."""
+    short = c._allocation_labels([("US", 8.0), ("X", 92.0)], "light")
+    long_ = c._allocation_labels([("Travel / airlines", 8.0), ("X", 92.0)], "light")
+    assert any("US" in a.text for a in short)
+    assert not any("Travel" in a.text for a in long_)
+
+
+def test_unlabelled_share_accounts_for_label_length():
+    items = [("AI / semis / megacap", 47.0), ("Core dividend ETFs", 13.5),
+             ("Travel / airlines", 6.5), ("Everything else", 33.0)]
+    assert c.unlabelled_share(items) > 0.15   # the two long-labelled ones
+
+
 def test_allocation_labels_never_exceed_the_plotted_domain():
     folded = [("A", 50.0), ("B", 50.0)]
     labels = c._allocation_labels(folded, "light")
