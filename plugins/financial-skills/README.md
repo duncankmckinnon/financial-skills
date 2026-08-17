@@ -23,8 +23,8 @@ another's job.
 Ask your agent to **set up financial skills**, or run the doctor directly:
 
 ```bash
-scripts/doctor.sh          # check and report
-scripts/doctor.sh --fix    # create the data home, policy file and env.sh
+uv run python scripts/doctor.py        # check and report
+uv run python scripts/doctor.py --fix  # create the data home, policy and env files
 ```
 
 It checks resources, `uv`, an end-to-end smoke chart, your data home, the policy

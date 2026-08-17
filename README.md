@@ -69,11 +69,14 @@ for per-harness instructions.
 ## Development
 
 ```bash
-./scripts/validate.sh                              # manifests + skill frontmatter
-./tests/test_skill_contracts.sh                    # skill content guarantees
-./tests/test_doctor.sh                             # setup doctor behaviour
-uv run --with 'xy==0.0.6' --with pytest pytest tests/ -q   # palette + charts
+uv run --with 'xy==0.0.6' --with pytest pytest tests/ -q   # palette, charts, doctor
+./scripts/validate.sh                                      # manifests + frontmatter
+./tests/test_skill_contracts.sh                            # skill content guarantees
 ```
+
+The Python suite runs anywhere. The two shell scripts are development-only and
+need bash — on Windows, WSL or Git Bash. Nothing a *user* runs requires bash:
+`doctor.py` and the charting module are cross-platform.
 
 `scripts/validate.sh` enforces two invariants mechanically, so neither depends
 on anyone remembering:
@@ -102,7 +105,7 @@ Charts run through `uv run --with 'xy==0.0.6'`; there is no venv to manage.
   broker connection at all
 - **`jq`** — development only, for `scripts/validate.sh`
 
-Run `plugins/financial-skills/scripts/doctor.sh` to check all of it at once.
+Run `plugins/financial-skills/scripts/doctor.py` to check all of it at once.
 
 ## Charts
 

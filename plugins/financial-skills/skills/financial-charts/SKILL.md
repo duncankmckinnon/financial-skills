@@ -168,15 +168,17 @@ segment labels colliding, an axis labelled in percent while plotting dollars —
 **Reading a PNG renders it into your context, not theirs.** The human sees
 nothing unless you open it. Never describe a chart as though they can see it.
 
-Open the interactive HTML — it carries tooltips, crosshair, pan and zoom:
+Use `c.show(path)` — it works on macOS, Linux and Windows, and opens the
+interactive HTML with its tooltips, crosshair, pan and zoom:
 
-```bash
-open "$FINANCIAL_HOME/charts/<date>/<name>.html"     # macOS
-xdg-open "$FINANCIAL_HOME/charts/<date>/<name>.html" # Linux
+```python
+path = c.allocation_chart(items, c.chart_dir())
+if not c.show(path):
+    print(f"no display available - chart written to {path}")
 ```
 
-If the environment has no display, say so and give the file path instead of
-pretending the chart was delivered.
+`show()` returns False when no viewer could be launched. Report the file path
+then, rather than implying the chart was delivered.
 
 Report the numbers in text as well. A chart the human has not opened yet, or
 cannot open, must not be the only place a finding appears.
