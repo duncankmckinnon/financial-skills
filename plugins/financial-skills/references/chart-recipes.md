@@ -133,3 +133,28 @@ Status: AVAILABLE, signature matches the plan exactly.
 xy.theme(background=SURFACE, plot_background=SURFACE, grid_color=GRID,
          axis_color=BASELINE, text_color=PRIMARY_INK)
 ```
+
+## Calls added with the declarative spec
+
+Verified against `xy` 0.0.6 on 2026-11-22, by render and by looking.
+
+| Need | Call | Notes |
+|---|---|---|
+| Render at a block's size | `xy.bar_chart(..., width=590, height=260)` — any chart constructor | `width` / `height` are pixels. The chart does **not** reflow afterwards, so size is fixed at build time. PNG export is 2× those pixels; SVG is 1×. |
+| SVG export | `chart.to_svg()` | Returns the markup. Mark colours come out as `rgb(r,g,b)`, text and chrome as hex — normalise before asserting on a colour. |
+| HTML export | `chart.to_html()` | Self-contained (~440 KB), with its own restrictive content-security policy. Returns the document; writes it too when given a path. |
+| Reference line | `xy.hline(y, text="label", color=…, width=1.5)` | The label sits on the line at the right edge. |
+| Shaded range behind a series | `xy.error_band(x, lower, upper, color=…, opacity=0.35)` | Draw it before the lines so they paint over it. |
+| Negative-bar label | `xy.label(v, i, text, anchor="end", dx=-6.0)` | `dx` defaults to `+6` for every label. Left at the default, a negative bar's label is pushed back over its own bar. |
+| Missing heatmap cell | `float("nan")` in `z` | Renders as an empty cell. |
+| String x values | `xy.line(["2026-01", "2026-02"], [...])` | Treated as ordered categories; tick labels thin themselves. |
+
+**Label fit is in pixels, not share.** Label text is ~7.5px a character at
+every chart width, and ~80px of the width goes to the category tick label and
+padding. A segment label that fits at 1200px collides at 590px, so
+`_label_fits` takes the render width.
+
+**Small multiples are separate charts.** `xy.facet_chart` repeats one mark
+composition per value, which does not fit categorical bars whose labels differ
+between panels. `build_facets` instead builds one chart per value and passes
+every panel the same value-axis `domain`.
