@@ -18,17 +18,27 @@ lacks "$f" "gains are green"
 has "$f" "never a dual-axis"
 has "$f" "fold"
 has "$f" "not theirs"
-has "$f" "c.show("
-# A batch of charts is one finding. The skill must route a batch through the
-# dashboard rather than opening a tab per chart.
-has "$f" "c.show_all("
-has "$f" "dashboard"
+# A batch of charts is one finding: one spec, one command, one page -- never a
+# tab per chart, and never chart code written inline.
+has "$f" 'charts.py" render'
+has "$f" 'charts.py" validate'
+has "$f" "references/chart-spec.md"
+has "$f" "--open"
+has "$f" "one page"
+has "$f" "download"
+has "$f" "writes no Python"
+# The summary's warnings are findings about the chart; they must be reported.
+has "$f" "warnings"
+# Rows from connected sources carry their provenance onto the page.
+has "$f" '"sources"'
 # Commentary must read the chart, not prescribe a trade: recommendations route
 # through rebalancing and trade-workflow, which have confirmation gates that a
 # caption under a chart does not.
-has "$f" "note="
+has "$f" '"note"'
 has "$f" "not what to do about it"
-has "$f" "magnitude_chart"
+has "$f" "magnitude"
+lacks "$f" "magnitude_chart"
+lacks "$f" "import charts"
 has "$f" "ephemeral"
 has "$f" "as-of stamp"
 has "$f" "open "
@@ -38,9 +48,18 @@ f=$S/portfolio-review/SKILL.md
 if [ -f "$f" ]; then
   has "$f" "read-only"
   has "$f" "must not place"
-  has "$f" "references/mcp-tools.md"
+  has "$f" "references/sources.md"
+  # Several sources: never double-count, never guess, never hide a gap.
+  has "$f" "unassigned"
+  has "$f" "could not read"
+  has "$f" "not live"
+  has "$f" "sources read"
+  has "$f" "Adapting to what is connected"
+  lacks "$f" "robinhood-trading"
   has "$f" "investment-policy.md"
   has "$f" "financial-charts"
+  has "$f" "preset"
+  lacks "$f" "allocation_chart"
 fi
 
 f=$S/trade-workflow/SKILL.md
@@ -52,6 +71,10 @@ if [ -f "$f" ]; then
                 "trade-log.md" "Agentic account"; do
     has "$f" "$phrase"
   done
+  has "$f" "references/sources.md"
+  has "$f" "trading source"
+  has "$f" "Adapting to what is connected"
+  lacks "$f" "robinhood-trading"
 fi
 
 f=$S/rebalancing/SKILL.md
@@ -63,6 +86,16 @@ if [ -f "$f" ]; then
   has "$f" "wash"
   has "$f" "do-not-sell"
   has "$f" "tolerance band"
+  has "$f" "references/sources.md"
+  has "$f" "whole-portfolio"
+  has "$f" "Agentic account"
+  has "$f" "could not see"
+  # No order capability connected: still useful, the human places the trades.
+  has "$f" "place themselves"
+  has "$f" "preset"
+  lacks "$f" "drift_chart"
+  has "$f" "Adapting to what is connected"
+  lacks "$f" "robinhood-trading"
 fi
 
 f=$S/retirement-planning/SKILL.md
@@ -71,7 +104,9 @@ if [ -f "$f" ]; then
   has "$f" "assumptions"
   has "$f" "without a broker"
   has "$f" "must not place"
-  has "$f" "projection_chart"
+  has "$f" "projection"
+  has "$f" "preset"
+  lacks "$f" "projection_chart"
   has "$f" "not financial advice"
 fi
 
@@ -84,6 +119,9 @@ if [ -f "$f" ]; then
   has "$f" "FINANCIAL_HOME"
   has "$f" "never overwrite"
   has "$f" "authorization state cannot be checked"
+  has "$f" "sources.md"
+  has "$f" "Connect your sources"
+  lacks "$f" "robinhood-trading"
 fi
 
 [ "$fail" -eq 0 ] && echo "SKILL CONTRACTS PASS" || echo "SKILL CONTRACTS FAILED" >&2

@@ -33,13 +33,26 @@ for d in plugins/*/skills/*/; do
   [ "$fail" -eq 0 ] && ok "$name"
 done
 
-echo "== 6. no hardcoded MCP tool names outside references/mcp-tools.md =="
-for f in plugins/*/skills/*/SKILL.md; do
-  [ -e "$f" ] || continue
-  if grep -nE '\b(review_equity_order|place_equity_order|get_positions|get_account|get_quote)\b' "$f"; then
-    err "$f hardcodes an MCP tool name; route through references/mcp-tools.md"
-  fi
-done
+echo "== 6. no SKILL.md hardcodes a tool name from references/sources/ =="
+# Names are read from the source files themselves, so adding a source extends
+# this check with no edit here. A name is any backticked token in a table row.
+tools=$(for f in plugins/*/references/sources/*.md; do
+  case "$f" in */_template.md) continue ;; esac
+  [ -e "$f" ] && grep '^|' "$f" | grep -oE '`[A-Za-z_][A-Za-z0-9_]*`' | tr -d '`'
+done | sort -u)
+if [ -z "$tools" ]; then
+  err "no tool names found under references/sources/ -- check 6 has nothing to enforce"
+else
+  for f in plugins/*/skills/*/SKILL.md; do
+    [ -e "$f" ] || continue
+    hit=0
+    for t in $tools; do
+      if grep -nw -- "$t" "$f"; then hit=1; fi
+    done
+    [ "$hit" -eq 1 ] && err "$f hardcodes a tool name; route through references/sources.md"
+  done
+  [ "$fail" -eq 0 ] && ok "$(echo "$tools" | wc -l | tr -d ' ') tool names checked against every SKILL.md"
+fi
 
 echo "== 7. plugin content is harness-agnostic =="
 # Everything the user reads must work under any agent, not just Claude Code.
@@ -57,6 +70,58 @@ for f in $(find plugins/*/skills plugins/*/references plugins/*/assets -name '*.
     ok "${f#plugins/*/} is harness-agnostic"
   fi
 done
+
+echo "== 8. source files follow the shared format =="
+CAPS="accounts|balances|positions|quotes|tax lots|order history|transactions|order preview|order place"
+for p in plugins/*/; do
+  idx="${p}references/sources.md"
+  if [ ! -f "$idx" ]; then err "missing $idx"; continue; fi
+  echo "$CAPS" | tr '|' '\n' | while read -r c; do
+    grep -qiF -- "$c" "$idx" || echo "$c"
+  done | grep -q . && err "$idx does not define every capability"
+  for phrase in "one account, one source" "unassigned" "not live" "Without it"; do
+    grep -qiF -- "$phrase" "$idx" || err "$idx missing: $phrase"
+  done
+  trading=0
+  for f in "${p}"references/sources/*.md; do
+    [ -e "$f" ] || continue
+    case "$f" in */_template.md) continue ;; esac
+    before=$fail
+    role=$(head -10 "$f" | sed -nE 's/^Role:[[:space:]]*(trading|read-only)[[:space:]]*$/\1/p' | head -1)
+    [ -n "$role" ] || err "$f: no 'Role: trading' or 'Role: read-only' line in its first 10 lines"
+    [ "$role" = "trading" ] && trading=$((trading + 1))
+    for h in Connection Boundaries Freshness Capabilities Gaps; do
+      grep -q "^## $h\$" "$f" || err "$f: missing section '## $h'"
+    done
+    # Rows of the Capabilities table only: from its heading to the next H2.
+    rows=$(awk '/^## Capabilities$/{on=1; next} /^## /{on=0} on && /^\|/' "$f" \
+           | grep -vE '^\|[[:space:]]*(Capability|-+)' )
+    firsts=$(echo "$rows" | awk -F'|' '{gsub(/^[ \t]+|[ \t]+$/, "", $2); print $2}')
+    while read -r c; do
+      echo "$firsts" | grep -qxF -- "$c" || err "$f: Capabilities table has no row for '$c'"
+    done < <(echo "$CAPS" | tr '|' '\n')
+    while read -r c; do
+      [ -z "$c" ] && continue
+      echo "$c" | grep -qxE "$CAPS" || err "$f: '$c' is not a capability defined in references/sources.md"
+    done <<< "$firsts"
+    if [ "$role" = "read-only" ]; then
+      for c in "order preview" "order place"; do
+        echo "$rows" | awk -F'|' -v c="$c" '{gsub(/^[ \t]+|[ \t]+$/, "", $2); gsub(/^[ \t]+|[ \t]+$/, "", $3); if ($2==c && $3!="none") bad=1} END{exit !bad}' \
+          && err "$f: a read-only source must have 'none' for $c"
+      done
+    fi
+    [ "$fail" -eq "$before" ] && ok "${f#plugins/*/}"
+  done
+  [ "$trading" -le 1 ] || err "${p}references/sources/: more than one shipped source declares Role: trading"
+done
+
+echo "== 9. nothing points at the retired mcp-tools.md =="
+if grep -rn "mcp-tools\.md" README.md plugins/ --include='*.md' --include='*.py' --include='*.json'; then
+  err "references/mcp-tools.md was replaced by references/sources.md; update the mentions above"
+else
+  ok "no stale mentions"
+fi
+[ -e plugins/financial-skills/references/mcp-tools.md ] && err "references/mcp-tools.md still exists"
 
 [ "$fail" -eq 0 ] && echo "ALL CHECKS PASS" || echo "VALIDATION FAILED" >&2
 exit "$fail"

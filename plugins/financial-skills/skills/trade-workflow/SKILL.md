@@ -9,12 +9,24 @@ description: Use when placing, previewing, or sizing any equity order. This is t
 plugin is read-only and says so. If you are not in this skill, you are not
 placing a trade.
 
-Orders may only be placed in the Robinhood **Agentic account**. Every other
-account is read-only at the server — that is Robinhood's boundary, and it is
-what keeps a mistake here from reaching the rest of the portfolio.
+Orders may only be placed in the trading source's **Agentic account**. Every
+other account is read-only at the server — that is the broker's boundary, and
+it is what keeps a mistake here from reaching the rest of the portfolio. Every
+other source is read-only to this plugin, whatever its own tools allow.
 
-Resolve every capability below to an actual tool name via
-`references/mcp-tools.md`. Never hardcode a tool name in this file.
+Resolve every capability below via `references/sources.md`. Preview and place
+come from the **trading source** only — the one source whose file declares the
+trading role. Never hardcode a source or a tool name in this file.
+
+## Adapting to what is connected
+
+- **No trading source connected:** do steps 1 and 2, then stop and say that no
+  order can be previewed or placed from here. Do not improvise a substitute
+  for the preview.
+- **Other sources declared:** sizing in step 2 uses whole-portfolio value, read
+  under the rules in `references/sources.md`. Say which value was used —
+  whole portfolio or the trading source alone — next to the number.
+- Buying power always comes from the trading source's Agentic account.
 
 ## The sequence — six steps, in order, none skippable
 
@@ -86,10 +98,10 @@ If the place call fails or returns an unexpected status, **report it exactly** �
 including partial fills — and log it. Do not retry silently. A trade whose state
 is unclear is a thing the human needs to know about immediately.
 
-## If the broker connection is unavailable
+## If no source is available
 
-This skill needs the `robinhood-trading` MCP server. If it is not reachable —
-not configured, not authorized, or the harness has no MCP support — say so
-plainly, point at `references/harness-setup.md`, and stop. Do not guess at
-holdings, prices, or balances, and do not substitute figures the human
+This skill needs at least one connected source that provides the order preview and order place capabilities, plus balances. If none
+is reachable — not configured, not authorized, or the harness cannot connect to
+one — say so plainly, point at `references/harness-setup.md`, and stop. Do not
+guess at holdings, prices, or balances, and do not substitute figures the human
 mentioned in passing for data you were unable to read.

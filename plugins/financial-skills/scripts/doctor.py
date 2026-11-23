@@ -2,22 +2,25 @@
 """financial-skills environment doctor.
 
 Cross-platform: macOS, Linux and Windows. Reports by default; creates nothing
-unless --fix is passed, and never overwrites an existing investment policy.
+unless --fix is passed, and never overwrites an existing investment policy or
+sources declaration.
 
     doctor.py          check and report
     doctor.py --fix    additionally create the data home, the policy file from
-                       the template, and the env files
+                       the template, the sources declaration, and the env files
 
 Exit 0 = ready. Exit 1 = something blocks. Exit 2 = usable but degraded
-(broker-backed skills unavailable).
+(some skills unavailable).
 
 Run it with uv so Python is guaranteed:
 
     uv run python <plugin>/scripts/doctor.py
 """
 import argparse
+import json
 import os
 import pathlib
+import re
 import shutil
 import subprocess
 import sys
@@ -69,23 +72,28 @@ def financial_home():
     return pathlib.Path.home() / ".financial"
 
 
-SMOKE = """
-import sys, pathlib
-root, out = sys.argv[1], sys.argv[2]
-sys.path.insert(0, str(pathlib.Path(root) / "scripts"))
-import charts as c
-p = c.allocation_chart([("A", 60.0), ("B", 40.0)], out)
-assert p.exists() and p.with_suffix(".png").stat().st_size > 0
-"""
+# The smallest spec that exercises the whole chain: validation, a data step,
+# a renderer, PNG and SVG export, and the page.
+SMOKE_SPEC = {
+    "title": "Doctor smoke test",
+    "data": {"t": {"rows": [{"k": "A", "v": 60.0}, {"k": "B", "v": 40.0}]}},
+    "charts": [{"id": "smoke", "form": "magnitude", "from": "t",
+                "steps": [{"sort": {"by": "v"}}], "label": "k", "value": "v"}],
+}
+
+SCRIPTS = ("charts.py", "chart_spec.py", "chart_data.py", "chart_forms.py",
+           "chart_page.py")
 
 
 def check_resources(r, root):
     print("Plugin resources")
-    if (root / "scripts" / "charts.py").is_file() and \
-       (root / "assets" / "palette.py").is_file():
+    missing = [f"scripts/{s}" for s in SCRIPTS if not (root / "scripts" / s).is_file()]
+    if not (root / "assets" / "palette.py").is_file():
+        missing.append("assets/palette.py")
+    if not missing:
         r.ok(f"resolved root: {root}")
         return True
-    r.bad(f"cannot find scripts/charts.py and assets/palette.py under {root}")
+    r.bad(f"cannot find {', '.join(missing)} under {root}")
     r.note("set FINANCIAL_SKILLS_ROOT to the plugin directory")
     return False
 
@@ -114,12 +122,20 @@ def check_charting(r, root, uv, resources_ok):
     # only check that proves it works end to end.
     smoke = tempfile.mkdtemp(prefix="financial-doctor-")
     try:
+        spec = pathlib.Path(smoke) / "spec.json"
+        spec.write_text(json.dumps(SMOKE_SPEC))
+        out = pathlib.Path(smoke) / "out"
+        # Through the same command the skills use, not an import.
         proc = subprocess.run(
-            [uv, "run", "--quiet", "--with", XY_PIN, "python", "-c", SMOKE,
-             str(root), smoke],
+            [uv, "run", "--quiet", "--with", XY_PIN, "python",
+             str(root / "scripts" / "charts.py"), "render", str(spec),
+             "--out", str(out)],
             capture_output=True, text=True,
         )
-        if proc.returncode == 0:
+        rendered = (out / "smoke.png").is_file() and \
+            (out / "smoke.png").stat().st_size > 0 and \
+            (out / "doctor-smoke-test.html").is_file()
+        if proc.returncode == 0 and rendered:
             r.ok(f"end-to-end smoke chart rendered ({XY_PIN})")
         else:
             r.bad("smoke chart failed to render")
@@ -161,17 +177,82 @@ def check_data(r, root, home, fix):
         r.note("re-run with --fix to create one from the template")
 
 
-def check_broker(r, root):
-    print("\nBroker connection")
+_ROLE = re.compile(r"^Role:\s*(trading|read-only)\s*$")
+
+
+def source_roles(dirs):
+    """Map each source name (file stem) under `dirs` to its declared role.
+
+    The role is None when a file has no valid `Role:` line in its first ten
+    lines. `_template.md` is a skeleton, not a source, and is skipped.
+    """
+    roles = {}
+    for d in dirs:
+        if not d.is_dir():
+            continue
+        for f in sorted(d.glob("*.md")):
+            if f.name.startswith("_"):
+                continue
+            role = None
+            try:
+                head = f.read_text(errors="replace").splitlines()[:10]
+            except OSError:
+                head = []
+            for line in head:
+                m = _ROLE.match(line)
+                if m:
+                    role = m.group(1)
+                    break
+            roles[f.stem] = role
+    return roles
+
+
+def check_sources(r, root, home, fix):
+    print("\nSources")
+    shipped = source_roles([root / "references" / "sources"])
+    user = source_roles([home / "sources"])
     mcp = root / ".mcp.json"
-    if mcp.is_file() and "robinhood-trading" in mcp.read_text():
-        r.ok("robinhood-trading is declared in .mcp.json")
+    declared = mcp.read_text() if mcp.is_file() else ""
+
+    trading = []
+    for name, role, mine in [(n, v, False) for n, v in shipped.items()] + \
+                            [(n, v, True) for n, v in user.items()]:
+        if role is None:
+            r.warn(f"{name} has no valid Role line")
+            r.note("add 'Role: read-only' or 'Role: trading' near the top of its file")
+            continue
+        r.ok(f"{name} ({role}{', user-defined' if mine else ''})")
+        if name in declared:
+            r.note("declared by the plugin in .mcp.json")
+        else:
+            r.note("connect it through your agent -- see references/harness-setup.md")
+        if role == "trading":
+            trading.append(name)
+
+    if not shipped and not user:
+        r.warn("no source files found -- the data-backed skills have nothing to read")
+    if len(trading) > 1:
+        r.warn(f"more than one source declares the trading role: {', '.join(trading)}")
+    elif not trading:
+        r.note("no source declares the trading role -- order placement is unavailable, "
+               "everything else works")
+
+    declaration = home / "sources.md"
+    template = root / "assets" / "sources.template.md"
+    if declaration.is_file():
+        # Never overwrite: this is the human's account-to-source mapping.
+        r.ok("sources.md present (left untouched)")
+    elif fix and template.is_file() and home.is_dir():
+        shutil.copyfile(template, declaration)
+        r.ok(f"created {declaration} from template")
+        r.note("list your sources and assign each account to exactly one")
     else:
-        r.warn(f"robinhood-trading not declared in {mcp}")
+        r.note("no sources.md -- skills adapt to whichever sources are connected")
+
     # Authorization is an OAuth token, not readable from disk. Report the
     # limit honestly rather than showing a green check for something unverified.
     r.note("authorization state cannot be checked from here -- see references/harness-setup.md")
-    r.note("retirement-planning and financial-charts work without any broker connection")
+    r.note("retirement-planning and financial-charts work without any source connected")
 
 
 def check_env_files(r, root, home, fix):
@@ -211,7 +292,7 @@ def main(argv=None):
     uv = check_runtime(r)
     check_charting(r, root, uv, resources_ok)
     check_data(r, root, home, args.fix)
-    check_broker(r, root)
+    check_sources(r, root, home, args.fix)
     check_env_files(r, root, home, args.fix)
 
     print()

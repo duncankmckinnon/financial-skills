@@ -1,6 +1,6 @@
 ---
 name: financial-setup
-description: Use when setting up, verifying, or troubleshooting the financial-skills environment — connecting the Robinhood broker, checking that charting works, creating the investment policy file, or diagnosing why another financial skill cannot run.
+description: Use when setting up, verifying, or troubleshooting the financial-skills environment — connecting data sources such as a broker or an aggregator, checking that charting works, creating the investment policy file, or diagnosing why another financial skill cannot run.
 ---
 
 # Financial Setup
@@ -28,40 +28,57 @@ per harness and changes on update:
 Exit codes: **0** ready · **1** something blocks · **2** usable but degraded.
 
 The doctor checks resources, `uv`, `jq`, an **end-to-end smoke chart**, the data
-home, the policy file, the broker declaration, and `env.sh`. The smoke chart is
+home, the policy file, the source files, and `env.sh`. The smoke chart is
 the one that matters most: every individual part can check out while the chain
 is still broken.
 
 ## 2. Fix what it found
 
-Re-run with `--fix` to create the data home, an investment policy from the
-template, and `env.sh`:
+Re-run with `--fix` to create the data home, an investment policy and a
+sources declaration from their templates, and `env.sh`:
 
 ```bash
 uv run python "$ROOT/scripts/doctor.py" --fix
 ```
 
 `--fix` is additive only. It will **never overwrite** an existing investment
-policy — that file holds real targets, limits, and a do-not-sell list, and a
+policy or `sources.md` — that file holds real targets, limits, and a do-not-sell list, and a
 helpful-looking reset would destroy them silently. If the human wants to start
 over, have them move the old file aside themselves.
 
 For anything the doctor reports as blocking that `--fix` cannot handle —
 a missing `uv`, an unresolvable root — the fix is printed with the failure.
 
-## 3. Connect the broker
+## 3. Connect your sources
 
-This step is harness-specific and the doctor deliberately does not guess at it.
-**Read `references/harness-setup.md`** and follow the section for the agent you
-are running under.
+A source is anything that can report financial data: a broker, an aggregator, a
+bank. The doctor lists the source files it found and each one's role.
+`references/sources.md` explains the model; read it before walking the human
+through this step.
+
+Connecting a server is harness-specific and the doctor deliberately does not
+guess at it. **Read `references/harness-setup.md`** and follow the section for
+the agent you are running under.
 
 Be straight about the limit: **authorization state cannot be checked** from a
 script — it lives in an OAuth token the doctor cannot see. The doctor confirms
-the server is *declared*, nothing more. The real test is asking
+which sources are *described*, nothing more. The real test is asking
 `portfolio-review` to read positions and seeing whether it works.
 
-Tell the human which skills work without a broker at all:
-`retirement-planning` and `financial-charts` need no connection.
+Then fill in `$FINANCIAL_HOME/sources.md` with the human:
+
+- list each connected source
+- assign **every account to exactly one source** — this is what stops an
+  account that two sources both report from being counted twice
+- explain that an account left off the list is reported as unassigned and kept
+  out of totals, not guessed at
+
+The file is optional. Without it the skills adapt to whatever is connected, by
+the rules in `references/sources.md`. Nothing requires a particular source, and
+only placing an order requires the trading one.
+
+Tell the human which skills work with no source at all: `retirement-planning`
+and `financial-charts`.
 
 ## 4. Fill in the investment policy
 
@@ -81,8 +98,8 @@ and name what is missing, rather than inventing targets.
 
 ## Where data lives
 
-`${FINANCIAL_HOME:-~/.financial}` holds the policy, the trade log, and rendered
-charts. It is deliberately **outside** any agent's config directory — this is
+`${FINANCIAL_HOME:-~/.financial}` holds the policy, the sources declaration, the
+trade log, and rendered charts. It is deliberately **outside** any agent's config directory — this is
 the human's financial data, not a tool's state.
 
 If the doctor reports data at a legacy location, it prints the path and both
@@ -92,4 +109,4 @@ the human choose. Never move their data for them.
 ## Boundaries
 
 This skill must not place orders. It sets up and verifies the environment; it
-does not touch the broker beyond checking that the server is declared.
+does not read from or write to any source.
