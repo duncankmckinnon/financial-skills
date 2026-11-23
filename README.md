@@ -97,7 +97,8 @@ on anyone remembering:
   sections, and a row for each capability defined in
   [`references/sources.md`](plugins/financial-skills/references/sources.md). At
   most one source may hold the trading role.
-- **check 9** — nothing points at the retired `mcp-tools.md`.
+- **check 9** — nothing points at the single tool-reference file that the
+  per-source files replaced.
 
 Charts run through `uv run --with 'xy==0.0.6'`; there is no venv to manage.
 
