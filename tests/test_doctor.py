@@ -71,3 +71,84 @@ def test_output_is_plain_when_not_a_terminal(tmp_path):
     CI logs both mangle them."""
     r = run(tmp_path / "plain", "--fix")
     assert "\033[" not in r.stdout
+
+
+# --- sources -----------------------------------------------------------------
+
+import shutil
+
+
+@pytest.fixture
+def plugin_copy(tmp_path):
+    """A private copy of the plugin, for tests that alter shipped files."""
+    dst = tmp_path / "plugin"
+    shutil.copytree(BASE, dst, ignore=shutil.ignore_patterns("__pycache__"))
+    return dst
+
+
+def test_sources_section_lists_both_shipped_sources(tmp_path):
+    out = run(tmp_path / "h").stdout
+    assert "robinhood (trading)" in out
+    assert "monarch (read-only)" in out
+
+
+def test_fix_creates_the_sources_declaration(tmp_path):
+    home = tmp_path / "h"
+    run(home, "--fix")
+    assert (home / "sources.md").is_file()
+
+
+def test_fix_never_overwrites_an_existing_declaration(tmp_path):
+    home = tmp_path / "h"
+    home.mkdir()
+    f = home / "sources.md"
+    f.write_text("MY ACCOUNTS\n")
+    run(home, "--fix")
+    assert f.read_text() == "MY ACCOUNTS\n"
+
+
+def test_a_missing_declaration_is_not_a_warning(tmp_path):
+    home = tmp_path / "h"
+    run(home, "--fix")
+    (home / "sources.md").unlink()
+    r = run(home)
+    assert r.returncode == 0
+    assert "no sources.md -- skills adapt to whichever sources are connected" in r.stdout
+
+
+def test_a_user_defined_source_is_listed(tmp_path):
+    home = tmp_path / "h"
+    (home / "sources").mkdir(parents=True)
+    (home / "sources" / "mybank.md").write_text("# My bank\nRole: read-only\n")
+    assert "mybank (read-only, user-defined)" in run(home).stdout
+
+
+def test_a_source_file_without_a_role_warns_and_does_not_crash(tmp_path):
+    home = tmp_path / "h"
+    (home / "sources").mkdir(parents=True)
+    (home / "sources" / "broken.md").write_text("# no role here\n")
+    r = run(home)
+    assert "broken has no valid Role line" in r.stdout
+    assert "Traceback" not in r.stderr
+
+
+def test_two_trading_sources_warn(tmp_path):
+    home = tmp_path / "h"
+    (home / "sources").mkdir(parents=True)
+    (home / "sources" / "other.md").write_text("Role: trading\n")
+    assert "more than one source declares the trading role" in run(home).stdout
+
+
+def test_no_trading_source_is_a_note_not_a_warning(tmp_path, plugin_copy):
+    (plugin_copy / "references/sources/robinhood.md").unlink()
+    home = tmp_path / "h"
+    run(home, "--fix", root=plugin_copy)
+    r = run(home, root=plugin_copy)
+    assert "no source declares the trading role" in r.stdout
+    assert r.returncode == 0
+
+
+def test_the_template_is_not_listed_as_a_source(tmp_path):
+    # Match the listing form: tmp_path itself contains this test's name.
+    assert "_template (" not in run(tmp_path / "h").stdout
+    assert "_template has no" not in run(tmp_path / "h").stdout
