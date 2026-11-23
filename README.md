@@ -4,9 +4,12 @@ Agent skills for personal investing and financial planning, distributed as a
 Claude Code plugin marketplace and usable by any agent that can load a
 `SKILL.md`.
 
-Portfolio data and order execution come from Robinhood's
-[agentic-trading MCP](https://robinhood.com/us/en/support/articles/agentic-trading-overview/);
-charts render through the [`xy`](https://github.com/reflex-dev/xy) library.
+Data comes from whichever sources you connect. Source files ship for
+Robinhood's
+[agentic-trading MCP](https://robinhood.com/us/en/support/articles/agentic-trading-overview/)
+(holdings and order execution) and Monarch Money (accounts held anywhere else),
+and you can describe others yourself. Order execution is Robinhood only. Charts
+render through the [`xy`](https://github.com/reflex-dev/xy) library.
 
 ## Install
 
@@ -26,11 +29,11 @@ For other agents, see
 
 One plugin, **`financial-skills`**, with six skills:
 
-| Skill | What it does | Needs a broker |
+| Skill | What it does | Needs a source |
 |---|---|---|
 | **`financial-setup`** | Sets up and verifies the environment. Start here. | no |
 | **`portfolio-review`** | Allocation, concentration, exposure, unrealized P/L, drift vs target. Read-only. | yes |
-| **`trade-workflow`** | The only path to a placed order: thesis → sizing → preview → explicit confirm → place → log. | yes |
+| **`trade-workflow`** | The only path to a placed order: thesis → sizing → preview → explicit confirm → place → log. | yes — the trading one |
 | **`rebalancing`** | Drift table, minimal trade set, tax and wash-sale checks. | yes |
 | **`retirement-planning`** | Projections, savings rate, account location, glidepath. | no |
 | **`financial-charts`** | All chart rendering, via the `xy` library. | no |
@@ -41,6 +44,8 @@ Order placement is deliberately hard to do by accident:
 
 - Robinhood's own boundary makes every account **read-only at the source**
   except one dedicated Agentic account.
+- Every other source is **read-only to every skill**, including tools of its
+  own that could edit data, such as Monarch's.
 - **One skill** (`trade-workflow`) may place an order; the other five state in
   their own text that they must not.
 - **Preview → explicit confirm → place** is non-skippable. One confirmation
@@ -58,7 +63,7 @@ agent's config directory.
 The marketplace is the distribution channel, not a dependency. The skills
 themselves are harness-agnostic — they resolve paths at runtime, store data in
 `${FINANCIAL_HOME:-~/.financial}` rather than any tool's config directory, and
-name broker *capabilities* rather than hardcoded tool names. Point any agent
+name *capabilities* rather than hardcoded sources or tool names. Point any agent
 that can load a `SKILL.md` at `plugins/financial-skills/skills/`.
 
 See [`plugins/financial-skills/README.md`](plugins/financial-skills/README.md)
@@ -78,15 +83,21 @@ The Python suite runs anywhere. The two shell scripts are development-only and
 need bash — on Windows, WSL or Git Bash. Nothing a *user* runs requires bash:
 `doctor.py` and the charting module are cross-platform.
 
-`scripts/validate.sh` enforces two invariants mechanically, so neither depends
+`scripts/validate.sh` enforces these invariants mechanically, so none depends
 on anyone remembering:
 
-- **check 6** — no `SKILL.md` hardcodes an MCP tool name. Those live only in
-  [`references/mcp-tools.md`](plugins/financial-skills/references/mcp-tools.md),
-  so correcting one is a single-file edit.
+- **check 6** — no `SKILL.md` hardcodes a tool name. Names live only in the
+  per-source files under
+  [`references/sources/`](plugins/financial-skills/references/sources/), and the
+  check reads its list from them, so adding a source extends it automatically.
 - **check 7** — no `SKILL.md` contains a harness-specific path or command.
   Those live only in
   [`references/harness-setup.md`](plugins/financial-skills/references/harness-setup.md).
+- **check 8** — every source file follows one format: a role, the same five
+  sections, and a row for each capability defined in
+  [`references/sources.md`](plugins/financial-skills/references/sources.md). At
+  most one source may hold the trading role.
+- **check 9** — nothing points at the retired `mcp-tools.md`.
 
 Charts run through `uv run --with 'xy==0.0.6'`; there is no venv to manage.
 
@@ -100,9 +111,10 @@ Charts run through `uv run --with 'xy==0.0.6'`; there is no venv to manage.
   version is pinned because `xy` is pre-1.0 and its horizontal-bar axis
   semantics are relied on directly — see
   [`references/chart-recipes.md`](plugins/financial-skills/references/chart-recipes.md).
-- **an MCP-capable agent** — only for the three broker-backed skills;
-  `financial-setup`, `retirement-planning`, and `financial-charts` need no
-  broker connection at all
+- **an MCP-capable agent and at least one connected source** — only for
+  `portfolio-review`, `rebalancing` and `trade-workflow`. Any source will do for
+  the first two; placing an order needs Robinhood. `financial-setup`,
+  `retirement-planning`, and `financial-charts` need no source at all
 - **`jq`** — development only, for `scripts/validate.sh`
 
 Run `plugins/financial-skills/scripts/doctor.py` to check all of it at once.
