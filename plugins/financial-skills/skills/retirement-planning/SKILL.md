@@ -6,7 +6,7 @@ description: Use when projecting retirement readiness — savings rate versus go
 # Retirement Planning
 
 Long-horizon planning. This skill **works without a broker** connection and has
-no MCP dependency — it is useful with nothing but numbers the human supplies.
+no data-source dependency — it is useful with nothing but numbers the human supplies.
 
 ## Inputs
 
@@ -14,7 +14,7 @@ From the human: current age, target retirement age, balances by account type,
 annual contribution, expected retirement spending, and any known one-off events
 (inheritance, home purchase, tuition).
 
-Current portfolio value may come from the MCP if it happens to be connected, but
+Current portfolio value may come from a connected source if there is one, but
 is **never required**. Ask for what is missing rather than stalling.
 
 This skill **must not place** orders. It has no reason to touch an order

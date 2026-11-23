@@ -115,5 +115,13 @@ for p in plugins/*/; do
   [ "$trading" -le 1 ] || err "${p}references/sources/: more than one shipped source declares Role: trading"
 done
 
+echo "== 9. nothing points at the retired mcp-tools.md =="
+if grep -rn "mcp-tools\.md" README.md plugins/ --include='*.md' --include='*.py' --include='*.json'; then
+  err "references/mcp-tools.md was replaced by references/sources.md; update the mentions above"
+else
+  ok "no stale mentions"
+fi
+[ -e plugins/financial-skills/references/mcp-tools.md ] && err "references/mcp-tools.md still exists"
+
 [ "$fail" -eq 0 ] && echo "ALL CHECKS PASS" || echo "VALIDATION FAILED" >&2
 exit "$fail"

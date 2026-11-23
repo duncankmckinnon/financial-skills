@@ -11,13 +11,31 @@ trades that do the job.
 ## Inputs
 
 - Current allocation — the same read capabilities `portfolio-review` uses,
-  resolved via `references/mcp-tools.md`.
+  resolved via `references/sources.md`, over the same set of accounts and
+  under the same one-account-one-source rule.
 - `$FINANCIAL_HOME/investment-policy.md` — targets, **tolerance bands**,
   do-not-sell list, cash floor, maximum single position, tax constraints.
 - `$FINANCIAL_HOME/trade-log.md` — recent activity, for wash-sale checks.
 
 Without a policy file this skill cannot run. Offer to create one from
 `assets/investment-policy.template.md` rather than assuming targets.
+
+## Adapting to what is connected
+
+Do everything the connected capabilities support, following the table in
+`references/sources.md`, and say what was left out:
+
+- **Drift is whole-portfolio.** It is computed over every account the sources
+  rules say to read, not just the tradable one.
+- **Trades are proposed only in the Agentic account**, the one writable account
+  on the trading source. If drift cannot be closed there, say how much remains
+  and in which accounts the holdings sit — do not propose trades in an account
+  nothing here can trade.
+- **No order capability connected** (no trading source): still produce the
+  drift table and the trade list, for the human to place themselves. Say that
+  no order was previewed, so no broker warning was seen.
+- No tax lots → no lot-level conclusion. No transactions or order history for
+  an account → its wash-sale check was not done; name it.
 
 ## Method
 
@@ -42,10 +60,12 @@ Fewer, larger trades beat many small ones. Every trade has a cost.
 
 - Flag any lot with a **short-term holding period** — selling it converts a
   long-term rate into a short-term one.
-- Check the trade log and order history for **wash-sale** conflicts inside the
-  policy's window (30 days by default) in both directions.
+- Check the trade log, order history and transactions for **wash-sale**
+  conflicts inside the policy's window (30 days by default) in both directions.
+  A purchase in *any* account counts, so read every source that provides them
+  and name the accounts you could not see.
 - Prefer lots that avoid both problems.
-- **Where lot-level data is unavailable from the MCP, say so.** Do not assume
+- **Where lot-level data is unavailable from every connected source, say so.** Do not assume
   FIFO, do not estimate a holding period, and do not present a tax conclusion the
   data cannot support.
 
@@ -75,10 +95,10 @@ Via `financial-charts`:
 - `drift_chart` — drift vs target, before
 - `allocation_chart` — current and projected post-trade allocation
 
-## If the broker connection is unavailable
+## If no source is available
 
-This skill needs the `robinhood-trading` MCP server. If it is not reachable —
-not configured, not authorized, or the harness has no MCP support — say so
-plainly, point at `references/harness-setup.md`, and stop. Do not guess at
-holdings, prices, or balances, and do not substitute figures the human
+This skill needs at least one connected source that provides positions. If none
+is reachable — not configured, not authorized, or the harness cannot connect to
+one — say so plainly, point at `references/harness-setup.md`, and stop. Do not
+guess at holdings, prices, or balances, and do not substitute figures the human
 mentioned in passing for data you were unable to read.

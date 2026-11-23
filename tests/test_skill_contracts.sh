@@ -38,7 +38,14 @@ f=$S/portfolio-review/SKILL.md
 if [ -f "$f" ]; then
   has "$f" "read-only"
   has "$f" "must not place"
-  has "$f" "references/mcp-tools.md"
+  has "$f" "references/sources.md"
+  # Several sources: never double-count, never guess, never hide a gap.
+  has "$f" "unassigned"
+  has "$f" "could not read"
+  has "$f" "not live"
+  has "$f" "sources read"
+  has "$f" "Adapting to what is connected"
+  lacks "$f" "robinhood-trading"
   has "$f" "investment-policy.md"
   has "$f" "financial-charts"
 fi
@@ -52,6 +59,10 @@ if [ -f "$f" ]; then
                 "trade-log.md" "Agentic account"; do
     has "$f" "$phrase"
   done
+  has "$f" "references/sources.md"
+  has "$f" "trading source"
+  has "$f" "Adapting to what is connected"
+  lacks "$f" "robinhood-trading"
 fi
 
 f=$S/rebalancing/SKILL.md
@@ -63,6 +74,14 @@ if [ -f "$f" ]; then
   has "$f" "wash"
   has "$f" "do-not-sell"
   has "$f" "tolerance band"
+  has "$f" "references/sources.md"
+  has "$f" "whole-portfolio"
+  has "$f" "Agentic account"
+  has "$f" "could not see"
+  # No order capability connected: still useful, the human places the trades.
+  has "$f" "place themselves"
+  has "$f" "Adapting to what is connected"
+  lacks "$f" "robinhood-trading"
 fi
 
 f=$S/retirement-planning/SKILL.md
@@ -84,6 +103,9 @@ if [ -f "$f" ]; then
   has "$f" "FINANCIAL_HOME"
   has "$f" "never overwrite"
   has "$f" "authorization state cannot be checked"
+  has "$f" "sources.md"
+  has "$f" "Connect your sources"
+  lacks "$f" "robinhood-trading"
 fi
 
 [ "$fail" -eq 0 ] && echo "SKILL CONTRACTS PASS" || echo "SKILL CONTRACTS FAILED" >&2

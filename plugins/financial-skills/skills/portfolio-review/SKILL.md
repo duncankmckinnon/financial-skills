@@ -16,12 +16,34 @@ warrants a trade, say so and hand off — do not act.
 
 ## Data
 
-Read capabilities needed: positions, balances and buying power, live quotes,
-and order history. **Resolve these to actual tool names via
-`references/mcp-tools.md`** — never hardcode a tool name here.
+Read capabilities used: accounts, positions, balances, quotes, and order
+history. **Resolve each to a source and a tool via `references/sources.md`** —
+never hardcode a source or a tool name here.
 
-Note the server's boundary: all accounts are readable; only the dedicated
-Agentic account is writable. Reviewing every account is expected and safe.
+Which accounts to read is decided there too: every account in the human's
+`$FINANCIAL_HOME/sources.md`, each from its one declared source, or — with no
+declaration — whatever is connected, by the fallback rules in that file.
+Reading every account is expected and safe; nothing here writes.
+
+Three rules from `references/sources.md` that this skill must visibly follow:
+
+- **One account, one source.** An aggregator often reports accounts a broker
+  also reports. Never add them together.
+- An account a source returns that the declaration does not list is
+  **unassigned**: report it, leave it out of every total, ask the human.
+- If a declared source cannot be reached, name the accounts you **could not
+  read** and do not present the rest as the whole portfolio.
+
+## Adapting to what is connected
+
+Do everything the connected capabilities support, following the table in
+`references/sources.md`, and say what was left out:
+
+- no positions, only balances → account-level allocation only
+- no cost basis → no unrealized P/L; name the gap
+- no live quotes for a holding → use the source's synced value, marked **not
+  live**
+- no policy → no drift (see below)
 
 Read the policy file at `$FINANCIAL_HOME/investment-policy.md` if it exists.
 
@@ -51,10 +73,10 @@ no drift number.
 
 ## When the data is incomplete
 
-Where lot-level cost basis is unavailable from the MCP, say so plainly and scope
+Where lot-level cost basis is unavailable from every connected source, say so plainly and scope
 the P/L claim to what the data supports. Do not estimate silently, and do not let
-a confident tone paper over a gap. The same applies to any holding the server
-does not return.
+a confident tone paper over a gap. The same applies to any holding no source
+returns.
 
 ## Charts
 
@@ -70,10 +92,17 @@ Lead with the two or three things that actually matter — a breached position
 limit, a large drift, a concentrated exposure — then the supporting detail.
 State assumptions. This is decision support, not advice.
 
-## If the broker connection is unavailable
+Close with one short block, every time:
 
-This skill needs the `robinhood-trading` MCP server. If it is not reachable —
-not configured, not authorized, or the harness has no MCP support — say so
-plainly, point at `references/harness-setup.md`, and stop. Do not guess at
-holdings, prices, or balances, and do not substitute figures the human
+- **sources read**, and the as-of time of each
+- the share of total value that is not live
+- unassigned accounts and accounts you could not read
+- each analysis left out, with the capability it was missing
+
+## If no source is available
+
+This skill needs at least one connected source that provides positions or balances. If none
+is reachable — not configured, not authorized, or the harness cannot connect to
+one — say so plainly, point at `references/harness-setup.md`, and stop. Do not
+guess at holdings, prices, or balances, and do not substitute figures the human
 mentioned in passing for data you were unable to read.

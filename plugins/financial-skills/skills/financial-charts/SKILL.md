@@ -240,7 +240,7 @@ cannot open, must not be the only place a finding appears.
 
 ## Boundaries
 
-This skill must not call any MCP tool and must not place, preview, or modify any
+This skill must not call any data-source tool and must not place, preview, or modify any
 order. It renders data it is handed. Order placement belongs to `trade-workflow`
 alone.
 
