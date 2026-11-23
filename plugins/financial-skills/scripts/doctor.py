@@ -17,6 +17,7 @@ Run it with uv so Python is guaranteed:
     uv run python <plugin>/scripts/doctor.py
 """
 import argparse
+import json
 import os
 import pathlib
 import re
@@ -71,23 +72,28 @@ def financial_home():
     return pathlib.Path.home() / ".financial"
 
 
-SMOKE = """
-import sys, pathlib
-root, out = sys.argv[1], sys.argv[2]
-sys.path.insert(0, str(pathlib.Path(root) / "scripts"))
-import charts as c
-p = c.allocation_chart([("A", 60.0), ("B", 40.0)], out)
-assert p.exists() and p.with_suffix(".png").stat().st_size > 0
-"""
+# The smallest spec that exercises the whole chain: validation, a data step,
+# a renderer, PNG and SVG export, and the page.
+SMOKE_SPEC = {
+    "title": "Doctor smoke test",
+    "data": {"t": {"rows": [{"k": "A", "v": 60.0}, {"k": "B", "v": 40.0}]}},
+    "charts": [{"id": "smoke", "form": "magnitude", "from": "t",
+                "steps": [{"sort": {"by": "v"}}], "label": "k", "value": "v"}],
+}
+
+SCRIPTS = ("charts.py", "chart_spec.py", "chart_data.py", "chart_forms.py",
+           "chart_page.py")
 
 
 def check_resources(r, root):
     print("Plugin resources")
-    if (root / "scripts" / "charts.py").is_file() and \
-       (root / "assets" / "palette.py").is_file():
+    missing = [f"scripts/{s}" for s in SCRIPTS if not (root / "scripts" / s).is_file()]
+    if not (root / "assets" / "palette.py").is_file():
+        missing.append("assets/palette.py")
+    if not missing:
         r.ok(f"resolved root: {root}")
         return True
-    r.bad(f"cannot find scripts/charts.py and assets/palette.py under {root}")
+    r.bad(f"cannot find {', '.join(missing)} under {root}")
     r.note("set FINANCIAL_SKILLS_ROOT to the plugin directory")
     return False
 
@@ -116,12 +122,20 @@ def check_charting(r, root, uv, resources_ok):
     # only check that proves it works end to end.
     smoke = tempfile.mkdtemp(prefix="financial-doctor-")
     try:
+        spec = pathlib.Path(smoke) / "spec.json"
+        spec.write_text(json.dumps(SMOKE_SPEC))
+        out = pathlib.Path(smoke) / "out"
+        # Through the same command the skills use, not an import.
         proc = subprocess.run(
-            [uv, "run", "--quiet", "--with", XY_PIN, "python", "-c", SMOKE,
-             str(root), smoke],
+            [uv, "run", "--quiet", "--with", XY_PIN, "python",
+             str(root / "scripts" / "charts.py"), "render", str(spec),
+             "--out", str(out)],
             capture_output=True, text=True,
         )
-        if proc.returncode == 0:
+        rendered = (out / "smoke.png").is_file() and \
+            (out / "smoke.png").stat().st_size > 0 and \
+            (out / "doctor-smoke-test.html").is_file()
+        if proc.returncode == 0 and rendered:
             r.ok(f"end-to-end smoke chart rendered ({XY_PIN})")
         else:
             r.bad("smoke chart failed to render")

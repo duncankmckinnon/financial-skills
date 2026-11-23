@@ -152,3 +152,16 @@ def test_the_template_is_not_listed_as_a_source(tmp_path):
     # Match the listing form: tmp_path itself contains this test's name.
     assert "_template (" not in run(tmp_path / "h").stdout
     assert "_template has no" not in run(tmp_path / "h").stdout
+
+
+def test_smoke_chart_goes_through_the_render_command():
+    """The doctor must prove the path the skills use, not a private import."""
+    source = DOCTOR.read_text()
+    assert '"render"' in source and "SMOKE_SPEC" in source
+    assert "import charts" not in source
+
+
+def test_a_missing_chart_module_is_blocking(tmp_path, plugin_copy):
+    (plugin_copy / "scripts" / "chart_page.py").unlink()
+    r = run(tmp_path / "h", root=plugin_copy)
+    assert r.returncode == 1 and "chart_page.py" in r.stdout

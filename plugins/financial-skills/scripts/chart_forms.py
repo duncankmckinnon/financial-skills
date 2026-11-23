@@ -73,14 +73,28 @@ def as_of():
     return datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
 
 
-def _axis_label(text):
+# In the interactive page xy wraps an axis label that is wider than the plot,
+# and the wrapped line falls outside the frame -- which silently cut the time
+# off the as-of stamp at 'third' width. Seen in a browser render, not in the
+# PNG export, which does not wrap. ~9.5px a character against the plot width.
+AXIS_CHAR_PX = 9.5
+AXIS_MARGIN_PX = 90
+
+
+def _axis_label(text, width_px=None):
     """Axis label carrying the as-of stamp.
 
     A financial chart with no date on its face is indistinguishable from a
     stale one the moment prices move -- and a chart someone saves off has no
-    page header to fall back on.
+    page header to fall back on. When the label would not fit the width it is
+    drawn at, the descriptive text is dropped and the stamp kept: the panel
+    heading still names the chart, and nothing else carries the date.
     """
-    return f"{text}  ·  as of {as_of()}" if text else f"as of {as_of()}"
+    stamp = f"as of {as_of()}"
+    full = f"{text}  ·  {stamp}" if text else stamp
+    if width_px is not None and len(full) * AXIS_CHAR_PX > width_px - AXIS_MARGIN_PX:
+        return stamp
+    return full
 
 
 # ---------------------------------------------------------------------------
@@ -295,8 +309,12 @@ def _part_to_whole(chart, rows, width, height, mode, domain, warnings):
         # above the bar. Inside the frame it would cover the thin right-hand
         # segments, which are exactly the ones it has to explain.
         xy.legend(loc="upper center", ncols=4 if width == "full" else 3),
-        xy.y_axis(tick_values=[0.0], tick_labels=[title], domain=(-0.4, 1.5)),
-        xy.x_axis(label=_axis_label(_preset(chart).get("axis", "% of total")),
+        # A long title as the lone category tick is clipped at the left edge;
+        # the panel heading already carries it.
+        xy.y_axis(tick_values=[0.0], tick_labels=[title if len(title) <= 12 else ""],
+                  domain=(-0.4, 1.5)),
+        xy.x_axis(label=_axis_label(_preset(chart).get("axis", "% of total"),
+                                    WIDTH_PX[width]),
                   domain=(0.0, 100.0)),
         _theme(mode), **_size(width, height),
     )
@@ -332,7 +350,8 @@ def _diverging(chart, rows, width, height, mode, domain, warnings):
         *marks, *_diverging_bar_labels(pairs, mode, unit),
         xy.vline(0, color=p.INK[mode]["baseline"], width=2),  # visible zero
         xy.y_axis(tick_values=xs, tick_labels=[l for l, _ in pairs]),
-        xy.x_axis(label=_axis_label(_preset(chart).get("axis", title_of(chart))),
+        xy.x_axis(label=_axis_label(_preset(chart).get("axis", title_of(chart)),
+                                    WIDTH_PX[width]),
                   domain=domain or _padded_domain([v for _, v in pairs])),
         _theme(mode), **_size(width, height),
     )
@@ -357,7 +376,7 @@ def _magnitude(chart, rows, width, height, mode, domain, warnings):
         *[xy.label(v, x, _value_label(v, unit), color=p.INK[mode]["secondary"])
           for x, v in zip(xs, values)],
         xy.y_axis(tick_values=xs, tick_labels=[l for l, _ in ordered]),
-        xy.x_axis(label=_axis_label(title_of(chart)),
+        xy.x_axis(label=_axis_label(title_of(chart), WIDTH_PX[width]),
                   domain=domain or _padded_domain(values)),
         _theme(mode), **_size(width, height),
     )
@@ -409,7 +428,8 @@ def _series(chart, rows, width, height, mode, domain, warnings):
                               color=p.INK[mode]["muted"], width=1.5))
     y_kw = {"domain": domain} if domain else {}
     chrome = [xy.y_axis(label=title_of(chart), **y_kw),
-              xy.x_axis(label=_axis_label(_preset(chart).get("x_label", "")))]
+              xy.x_axis(label=_axis_label(_preset(chart).get("x_label", ""),
+                                          WIDTH_PX[width]))]
     if len(names) > 1:
         chrome.insert(0, xy.legend())
     return xy.line_chart(*marks, *chrome, _theme(mode), **_size(width, height))
@@ -429,7 +449,8 @@ def _stacked_area(chart, rows, width, height, mode, domain, warnings):
     return xy.area_chart(
         *reversed(layers),  # upper layers first so lower ones are not covered
         xy.legend(), xy.y_axis(label=title_of(chart)),
-        xy.x_axis(label=_axis_label(_preset(chart).get("x_label", ""))),
+        xy.x_axis(label=_axis_label(_preset(chart).get("x_label", ""),
+                                    WIDTH_PX[width])),
         _theme(mode), **_size(width, height),
     )
 
@@ -439,7 +460,7 @@ def _distribution(chart, rows, width, height, mode, domain, warnings):
     return xy.histogram_chart(
         xy.hist([float(r[chart["value"]]) for r in rows], bins=30,
                 color=p.CATEGORICAL[mode][0]),
-        xy.x_axis(label=_axis_label(title_of(chart))),
+        xy.x_axis(label=_axis_label(title_of(chart), WIDTH_PX[width])),
         _theme(mode), **_size(width, height),
     )
 
@@ -451,7 +472,7 @@ def _relationship(chart, rows, width, height, mode, domain, warnings):
                    [float(r[chart["y"]]) for r in rows],
                    color=p.CATEGORICAL[mode][0]),
         xy.y_axis(label=chart["y"]),
-        xy.x_axis(label=_axis_label(chart["x"])),
+        xy.x_axis(label=_axis_label(chart["x"], WIDTH_PX[width])),
         _theme(mode), **_size(width, height),
     )
 
@@ -490,7 +511,7 @@ def _matrix(chart, rows, width, height, mode, domain, warnings):
     kw = {"domain": dom} if dom else {}
     return xy.heatmap_chart(
         xy.heatmap(z, x=xs, y=ys, colormap=ramp, **kw),
-        xy.x_axis(label=_axis_label(title_of(chart))),
+        xy.x_axis(label=_axis_label(title_of(chart), WIDTH_PX[width])),
         _theme(mode), **_size(width, height),
     )
 

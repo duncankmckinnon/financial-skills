@@ -237,8 +237,10 @@ def write_page(path, *, title, mode, sources, sections, spec_text):
   /* Fixed-width blocks that wrap: xy does not reflow a chart to its container,
      so a column is never squeezed narrower than the chart drawn for it. */
   .blocks {{ display: flex; flex-wrap: wrap; gap: {GAP_PX}px; align-items: flex-start; }}
-  .panel {{ margin: 0; border: 1px solid {ink["grid"]}; border-radius: 8px;
-            overflow: hidden; background: {surface}; box-sizing: content-box; }}
+  /* The frame is a shadow, not a border: a border adds 2px to every panel,
+     and two 590px charts plus the gutter then no longer fit a 1200px row. */
+  .panel {{ margin: 0; box-shadow: 0 0 0 1px {ink["grid"]}; border-radius: 8px;
+            overflow: hidden; background: {surface}; }}
   .tablepanel {{ width: 100%; box-sizing: border-box; }}
   figcaption, .cellcap {{ display: flex; justify-content: space-between;
       align-items: baseline; gap: 12px; padding: 10px 14px; font-size: 14px;
@@ -253,7 +255,7 @@ def write_page(path, *, title, mode, sources, sections, spec_text):
   .note {{ margin: 0; padding: 12px 16px 14px; border-top: 1px solid {ink["grid"]};
            white-space: pre-line; font-size: 13px; line-height: 1.5;
            color: {ink["secondary"]}; }}
-  .stat {{ min-width: 170px; padding: 14px 16px; border: 1px solid {ink["grid"]};
+  .stat {{ min-width: 170px; padding: 14px 16px; box-shadow: 0 0 0 1px {ink["grid"]};
            border-radius: 8px; }}
   .statlabel {{ font-size: 13px; color: {ink["muted"]}; }}
   .statvalue {{ font-size: 26px; font-weight: 600; margin-top: 4px; }}

@@ -158,3 +158,16 @@ padding. A segment label that fits at 1200px collides at 590px, so
 composition per value, which does not fit categorical bars whose labels differ
 between panels. `build_facets` instead builds one chart per value and passes
 every panel the same value-axis `domain`.
+
+**The interactive chart needs WebGL2.** `to_html()` draws with WebGL2; in a
+viewer without it the frame shows only "xy: WebGL2 unavailable in this
+browser." The PNG and SVG exports do not need it, which is why every panel
+links both. Checking a page headlessly needs software GL switched on
+(`--enable-unsafe-swiftshader --use-angle=swiftshader`), or every frame is
+blank and the page looks broken when it is not.
+
+**Axis labels wrap in the page but not in the PNG.** The interactive render
+wraps an axis label wider than the plot, and the second line falls outside the
+frame. The PNG export never wraps, so this is invisible unless the page itself
+is looked at. `_axis_label` therefore drops the descriptive text and keeps the
+as-of stamp when the two will not fit the render width.

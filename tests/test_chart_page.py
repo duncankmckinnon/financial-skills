@@ -212,3 +212,16 @@ def test_to_csv_takes_a_column_list():
 def test_slug_makes_a_safe_filename():
     assert pg.slug("Portfolio review — Q4 / 2026") == "portfolio-review-q4-2026"
     assert pg.slug("") == "charts" and pg.slug("../../etc") == "etc"
+
+
+def test_panels_add_no_width_beyond_their_chart(tmp_path):
+    """Two half-width charts and the gutter must fit one full-width row.
+
+    A 1px border on each panel made the row 1204px and wrapped the second
+    chart underneath -- caught by looking at a render, not by a test.
+    """
+    text = page(tmp_path)
+    rule = re.search(r"\.panel \{([^}]*)\}", text).group(1)
+    assert "border:" not in rule and "padding" not in rule
+    assert 2 * f.WIDTH_PX["half"] + pg.GAP_PX <= pg.PAGE_WIDTH_PX
+    assert 3 * f.WIDTH_PX["third"] + 2 * pg.GAP_PX <= pg.PAGE_WIDTH_PX

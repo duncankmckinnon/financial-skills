@@ -334,3 +334,19 @@ def test_magnitude_warns_when_bars_outnumber_the_height():
     b = f.build(dict(MAG), rows([(f"S{i}", float(i + 1)) for i in range(9)]),
                 "full", "short", "light")
     assert b.warnings == [] or all("folded" in w for w in b.warnings)
+
+
+def test_the_as_of_stamp_survives_a_label_too_long_for_its_width():
+    """At 'third' width a long axis label wrapped and lost the stamp's time."""
+    long_text = "unrealized profit / loss"
+    full = f._axis_label(long_text, f.WIDTH_PX["full"])
+    narrow = f._axis_label(long_text, f.WIDTH_PX["third"])
+    assert long_text in full and "as of" in full
+    assert long_text not in narrow and narrow.startswith("as of")
+    assert len(narrow) * f.AXIS_CHAR_PX <= f.WIDTH_PX["third"] - f.AXIS_MARGIN_PX
+
+
+def test_a_long_title_is_not_used_as_the_part_to_whole_tick_label():
+    out = svg(dict(PTW, title="Allocation by theme and account"), ALLOC)
+    assert "Allocation by theme and account" not in out
+    assert "Allocation" in svg(dict(PTW, title="Allocation"), ALLOC)
