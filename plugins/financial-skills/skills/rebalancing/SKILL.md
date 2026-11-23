@@ -90,10 +90,12 @@ checkpoint before ten real orders hit a real account.
 
 ## Charts
 
-Via `financial-charts`:
+Via `financial-charts`, as one page:
 
-- `drift_chart` — drift vs target, before
-- `allocation_chart` — current and projected post-trade allocation
+- the `drift` preset — drift vs target, before
+- the `allocation` preset twice — current, and projected post-trade — at half
+  width, side by side
+- a table block of the proposed trade list
 
 ## If no source is available
 

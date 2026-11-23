@@ -17,7 +17,7 @@ another's job.
 | `trade-workflow` | The only path to a placed order: thesis → sizing → preview → explicit confirm → place → log. | yes — the trading one |
 | `rebalancing` | Drift table, minimal trade set, tax and wash-sale checks; hands trades to `trade-workflow` one at a time. | yes |
 | `retirement-planning` | Projections, savings rate vs goal, account location, glidepath. | no |
-| `financial-charts` | All chart rendering, via the `xy` library. | no |
+| `financial-charts` | All chart rendering: a JSON spec in, one downloadable page out. Via the `xy` library. | no |
 | `financial-setup` | Sets up and verifies the environment. Start here. | no |
 
 ## Setup
@@ -117,6 +117,13 @@ Layered, outermost first:
 5. **Policy limits** checked before preview, with the number and the limit shown.
 
 ## Charts
+
+Charts are declared, not coded. The agent writes a JSON spec — rows, charts,
+page layout — and runs `scripts/charts.py render spec.json`. The result is one
+self-contained page: interactive charts at declared sizes, headline figures,
+tables and text, with PNG, SVG and CSV downloads on every chart. A spec that
+does not validate renders nothing and lists every problem. Format:
+[`references/chart-spec.md`](references/chart-spec.md).
 
 Gains are **blue**, losses are **red** — not green/red. Measured with the palette
 validator: blue↔red separates at protan ΔE 21.6, green↔red at 7.2, inside the

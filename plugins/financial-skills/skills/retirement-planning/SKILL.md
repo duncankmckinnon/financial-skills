@@ -55,10 +55,11 @@ way this kind of analysis misleads.
 
 Via `financial-charts`:
 
-- `projection_chart` — median emphasized in the accent hue, percentile bands
-  de-emphasized. The median is the point; the bands are context.
-- `contributions_chart` — contributions vs growth as a stacked area, which shows
-  the crossover where returns start outrunning deposits.
+- the `projection` preset — a series chart with the median as the emphasized
+  series and the percentile range as a shaded band behind it. The median is
+  the point; the range is context.
+- the `contributions` preset — contributions vs growth as a stacked area, which
+  shows the crossover where returns start outrunning deposits.
 
 ## Framing
 

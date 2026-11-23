@@ -222,3 +222,23 @@ def test_show_refuses_a_missing_file(tmp_path):
     import charts, pytest
     with pytest.raises(FileNotFoundError):
         charts.show(tmp_path / "nope.html")
+
+
+def test_the_worked_spec_in_the_reference_renders(tmp_path):
+    """The documented example must be a spec that actually works."""
+    import re
+    doc = (BASE / "references" / "chart-spec.md").read_text()
+    worked = doc.split("## A worked spec", 1)[1]
+    spec = json.loads(re.search(r"```json\n(.*?)\n```", worked, re.S).group(1))
+    (tmp_path / "history.json").write_text(json.dumps(
+        [{"month": "2026-09", "value": 13000}, {"month": "2026-10", "value": 14500}]))
+    proc, out = render(tmp_path, spec)
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert json.loads(proc.stdout)["warnings"] == []
+
+
+def test_the_short_spec_in_the_skill_validates(tmp_path):
+    import re
+    doc = (BASE / "skills" / "financial-charts" / "SKILL.md").read_text()
+    spec = json.loads(re.search(r"```json\n(.*?)\n```", doc, re.S).group(1))
+    assert run(tmp_path, spec, "validate").returncode == 0

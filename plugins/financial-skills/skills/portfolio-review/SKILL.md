@@ -80,11 +80,19 @@ returns.
 
 ## Charts
 
-Hand off to `financial-charts` — do not write chart code here:
+Hand off to `financial-charts` — do not write chart code here. Give it the
+position rows as the sources returned them, and ask for one page:
 
-- `allocation_chart` — allocation by position, top 7 + "Other"
-- `drift_chart` — drift vs target, if a policy exists
-- `pl_chart` — unrealized P/L per position
+- the `allocation` preset — by position or class; the top 7 are kept and the
+  rest fold into "Other"
+- the `drift` preset — drift vs target, if a policy exists
+- the `pl` preset — unrealized P/L per position
+- with more than one account or source, the same chart faceted by account, so
+  a small account is read on the same scale as a large one
+- stat blocks for the headline figures, and a table block of the positions
+
+Pass the sources read and their as-of times along, so the page header carries
+them.
 
 ## Output
 
